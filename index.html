@@ -89,9 +89,22 @@
     <select id="selNivel" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
     <label class="lbl" style="color:#c9b06a;margin-top:6px">Grado / curso activo</label>
     <select id="selGrado" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <label class="lbl" style="color:#c9b06a;margin-top:6px">Año escolar</label>
+    <select id="selAno" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
     <label class="lbl" style="color:#c9b06a;margin-top:6px">Período de informe</label>
     <select id="selPeriodo" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
     <div class="saved" id="saved"></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:220px;border-left:1px solid #c9b06a;padding-left:12px">
+    <label class="lbl" style="color:#c9b06a">🔐 Acceso administrativo</label>
+    ${!D.adminLogged 
+      ? `<input id="adminPass" type="password" placeholder="Clave de dirección" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700" onkeydown="if(event.key==='Enter')loginAdmin()">
+         <button class="btnMin" onclick="loginAdmin()" style="font-size:12px">Entrar</button>`
+      : `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa</span>
+         <button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`
+    }
+    <div class="saved" id="adminMsg"></div>
   </div>
 </header>
 
@@ -103,7 +116,7 @@
     <div>Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II — Nivel Primario</div>
     <div style="margin-top:6px">Los datos se guardan en este navegador. Usá el botón de respaldo para exportarlos.</div>
     <div style="margin-top:4px;font-style:italic">Educamos en la verdad y el bien</div>
-    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 2026.11 · Carga guiada por grado</div>
+    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 2026.13 · Informes por fecha + Antecedentes históricos</div>
   </div>
 </footer>
 
@@ -200,7 +213,7 @@ const VIRTUDES = [
 
 // ── Estado y persistencia ──
 const KEY = "aec2026_convivencia";
-let D = { alumnos:[], docentes:[], titularidades:[], registros:[], reconocimientos:[], overrides:{}, reparadas:{}, periodo:"P1", nivelActivo:"", gradoActivo:"", docenteActivo:"", informeObs:{}, config:{escuela:"Colegio FASTA Juan Pablo II", grado:"", docente:""} };
+let D = { alumnos:[], docentes:[], titularidades:[], registros:[], reconocimientos:[], antecedentes:[], overrides:{}, reparadas:{}, periodo:"P1", nivelActivo:"", gradoActivo:"", docenteActivo:"", informeObs:{}, config:{escuela:"Colegio FASTA Juan Pablo II", grado:"", docente:""}, adminLogged:false, anoEscolar:"2026" };
 try { const raw = localStorage.getItem(KEY); if (raw) D = Object.assign(D, JSON.parse(raw)); } catch(e){}
 let tab = "rapido";
 let form = { alumnoId:"", faltaId:"", fecha: new Date().toISOString().slice(0,10), obs:"", reparadora:"", equiv:null, ok:"" };
@@ -288,10 +301,11 @@ function resumenAlumno(id){
 
 // ── Render ──
 function render(){
-  // período
-  const sp = document.getElementById("selPeriodo");
-  sp.innerHTML = PERIODOS.map(p=>`<option value="${p.id}" ${p.id===D.periodo?"selected":""}>${p.nombre}</option>`).join("");
-  // docente
+  // año escolar
+  const sa = document.getElementById("selAno");
+  const anosDisp = [...new Set([...D.registros.map(r => r.anoEscolar || "2026"), ...D.reconocimientos.map(r => r.anoEscolar || "2026"), "2024", "2025", "2026", "2027"])].sort().reverse();
+  sa.innerHTML = anosDisp.map(a => `<option value="${a}" ${a===D.anoEscolar?"selected":""}>${a}</option>`).join("");
+  sa.addEventListener("change", e => { D.anoEscolar=e.target.value; guardar(); render(); });
   const sd = document.getElementById("selDocente");
   sd.innerHTML = `<option value="">— Elegir docente —</option>` +
     D.docentes.map(d=>`<option value="${d.id}" ${d.id===D.docenteActivo?"selected":""}>${esc(d.nombre)}</option>`).join("");
@@ -409,7 +423,7 @@ window.registrarReconocimiento = () => {
   const nuevo = {
     id: uid(), alumnoId: al.id, virtudId: v.id, virtudNombre: v.nombre,
     ejemplo: formRecon.ejemplo, detalle: formRecon.detalle.trim(),
-    clase: formRecon.clase.trim(), fecha: formRecon.fecha, periodo: D.periodo,
+    clase: formRecon.clase.trim(), fecha: formRecon.fecha, periodo: D.periodo, anoEscolar: D.anoEscolar,
     docenteId: doc.id, docenteNombre: doc.nombre, docenteRol: doc.rol || "",
   };
   D.reconocimientos.push(nuevo);
@@ -568,7 +582,7 @@ window.registrarRapido = () => {
   const equiv = EQUIV[falta.gravedad];
   D.registros.push({id:uid(), alumnoId:al.id, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
     gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:new Date().toISOString().slice(0,10),
-    periodo:D.periodo, obs:"", reparadora:"", firmaLibro:falta.gravedad!=="leve",
+    periodo:D.periodo, anoEscolar:D.anoEscolar, obs:"", reparadora:"", firmaLibro:falta.gravedad!=="leve",
     docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
   guardar();
   rapidoOk = `✓ Registrado para <b>${esc(al.nombre)}</b>${doc?` por ${esc(doc.nombre)}`:""}: ${esc(falta.texto)}. ` + (falta.gravedad!=="leve" ? "Recordá firma en libro de disciplina y aviso a Dirección." : "");
@@ -629,8 +643,8 @@ function vPersonal(){
     <div class="panel" style="border-left:4px solid #5c7350;background:#f0f5ec">
       <b style="color:#1d3a5f;font-size:15px">📊 Método 1 · Importar el listado de docentes desde Excel</b>
       <p style="font-size:13.5px;margin:6px 0 10px">Cargá una planilla con los docentes de la escuela.</p>
-      <label class="btn" style="display:inline-block;cursor:pointer">📂 Elegir archivo Excel de docentes…
-        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarDocentes(this)"></label>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">📂 Elegir archivo Excel de docentes…
+        <input type="file" accept=".xlsx,.xls,.csv" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importarDocentes(this)"></label>
 
       <details style="margin-top:10px;font-size:13px;color:#5a5346">
         <summary style="cursor:pointer;color:#1d3a5f">¿Cómo tiene que estar armado el Excel?</summary>
@@ -798,7 +812,7 @@ function vAlumnos(){
             <table><tbody>
               ${alu.map(a=>`<tr>
                 <td>${esc(a.nombre)}</td>
-                <td style="text-align:right;width:80px"><button class="btnMin" onclick="editarAlumno('${a.id}')">Editar</button> <button class="btnMin" onclick="quitarAlumno('${a.id}')">Quitar</button></td>
+                <td style="text-align:right;width:160px"><button class="btnMin" onclick="trasladarAlumno('${a.id}')">📍 Trasladar</button> <button class="btnMin" onclick="editarAlumno('${a.id}')">Editar</button> <button class="btnMin" onclick="quitarAlumno('${a.id}')">Quitar</button></td>
               </tr>`).join("")}
             </tbody></table>
           </div>`;
@@ -832,8 +846,8 @@ function vAlumnos(){
       <p style="font-size:12.5px;color:#5a5346;margin:4px 0 12px">Si el docente titular no está en la lista, primero cargalo en la pestaña «Personal docente» y volvé aquí, o dejalo en «Sin titular» y asignalo más tarde.</p>
 
       <label class="lbl">4. Archivo Excel del grado</label>
-      <label class="btn" style="display:inline-block;cursor:pointer">📂 Elegir archivo Excel del grado…
-        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarGradoDesdeExcel(this)"></label>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">📂 Elegir archivo Excel del grado…
+        <input type="file" accept=".xlsx,.xls,.csv" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importarGradoDesdeExcel(this)"></label>
 
       <details style="margin-top:12px;font-size:13px;color:#5a5346">
         <summary style="cursor:pointer;color:#1d3a5f">¿Cómo tiene que estar armado el Excel?</summary>
@@ -1028,11 +1042,39 @@ window.onSelectGrado = (sel) => {
   }
 };
 
-window.quitarAlumno = id => {
-  if(!confirm("¿Quitar al alumno y todos sus registros?")) return;
-  D.alumnos = D.alumnos.filter(a=>a.id!==id);
-  D.registros = D.registros.filter(r=>r.alumnoId!==id);
-  D.reconocimientos = D.reconocimientos.filter(r=>r.alumnoId!==id);
+window.loginAdmin = () => {
+  const pass = document.getElementById("adminPass").value;
+  if(pass === "direccion"){
+    D.adminLogged = true;
+    document.getElementById("adminPass").value = "";
+    document.getElementById("adminMsg").textContent = "✓ Acceso otorgado";
+    setTimeout(() => { document.getElementById("adminMsg").textContent = ""; }, 3000);
+    guardar(); render();
+  } else {
+    document.getElementById("adminMsg").textContent = "✗ Clave incorrecta";
+    setTimeout(() => { document.getElementById("adminMsg").textContent = ""; }, 3000);
+  }
+};
+
+window.logoutAdmin = () => {
+  D.adminLogged = false;
+  guardar(); render();
+};
+
+window.editarRegistro = (id) => {
+  if(!D.adminLogged){ alert("Necesitás acceso administrativo para editar registros."); return; }
+  const reg = D.registros.find(r=>r.id===id); if(!reg) return;
+  const falta = CATALOGO.find(f=>f.id===reg.faltaId);
+  const obs = prompt("Observaciones del registro:", reg.obs);
+  if(obs === null) return;
+  reg.obs = obs;
+  guardar(); render();
+};
+
+window.borrarRegistro = (id) => {
+  if(!D.adminLogged){ alert("Necesitás acceso administrativo para borrar registros."); return; }
+  if(!confirm("¿Borrar este registro de falta? Solo dirección puede hacer esto.")) return;
+  D.registros = D.registros.filter(r=>r.id!==id);
   guardar(); render();
 };
 
@@ -1045,6 +1087,37 @@ function detectarColumna(headers, opciones){
   }
   return -1;
 }
+
+window.quitarAlumno = id => {
+  if(!confirm("¿Quitar al alumno y todos sus registros?")) return;
+  D.alumnos = D.alumnos.filter(a=>a.id!==id);
+  D.registros = D.registros.filter(r=>r.alumnoId!==id);
+  D.reconocimientos = D.reconocimientos.filter(r=>r.alumnoId!==id);
+  guardar(); render();
+};
+
+window.trasladarAlumno = (alumnoId) => {
+  const al = D.alumnos.find(a=>a.id===alumnoId); if(!al) return;
+  const nivelActual = al.nivel || "";
+  const gradoActual = al.grado || "";
+  
+  const nuevoNivel = prompt("Nuevo nivel (Inicial / Primario / Secundario):", nivelActual);
+  if(!nuevoNivel) return;
+  if(!NIVELES.includes(nuevoNivel)){ alert("Nivel no válido."); return; }
+  
+  const gradosDisp = GRADOS_PRESET[nuevoNivel] || [];
+  const nuevoGrado = prompt("Nuevo grado:\n" + gradosDisp.join(", "), gradoActual);
+  if(!nuevoGrado) return;
+  if(!gradosDisp.includes(nuevoGrado) && nuevoGrado !== gradoActual){
+    if(!confirm("El grado no está en la lista estándar. ¿Continuar de todas formas?")) return;
+  }
+  
+  al.nivel = nuevoNivel;
+  al.grado = nuevoGrado;
+  
+  guardar(); render();
+  alert(`✓ Alumno trasladado\n\n${al.nombre}\nDe: ${nivelActual || "—"} · ${gradoActual || "—"}\nA: ${nuevoNivel} · ${nuevoGrado}\n\nTodos los antecedentes se mantienen en la app.`);
+};
 
 // ── Registrar ──
 function vRegistro(){
@@ -1101,7 +1174,7 @@ window.registrar = () => {
   const equiv = form.equiv ?? EQUIV[falta.gravedad];
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
   D.registros.push({id:uid(), alumnoId:form.alumnoId, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
-    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:form.fecha, periodo:D.periodo,
+    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:form.fecha, periodo:D.periodo, anoEscolar:D.anoEscolar,
     obs:form.obs.trim(), reparadora:form.reparadora.trim(), firmaLibro:falta.gravedad!=="leve",
     docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
   const a = D.alumnos.find(x=>x.id===form.alumnoId);
@@ -1140,7 +1213,7 @@ function vGrilla(){
         <b>${reg.fecha}</b> · <span style="color:${colorG(reg.gravedad)};font-weight:700">${reg.gravedad.toUpperCase()}</span> (${reg.equiv} llamado${reg.equiv>1?"s":""}) · ${esc(reg.texto)}${reg.firmaLibro?" · Firma en libro":""}
         ${reg.docenteNombre?`<br><b>Docente:</b> ${esc(reg.docenteNombre)}`:""}
         ${reg.obs?`<br><i>Obs.: ${esc(reg.obs)}</i>`:""}${reg.reparadora?`<br><i>Acción reparadora: ${esc(reg.reparadora)}</i>`:""}
-      </td><td><button class="btnMin" onclick="borrarReg('${reg.id}')">Eliminar</button></td></tr>`).join("");
+      </td><td>${D.adminLogged?`<button class="btnMin" onclick="editarRegistro('${reg.id}')" style="font-size:11px">Editar</button><br><button class="btnMin" onclick="borrarRegistro('${reg.id}')" style="font-size:11px;background:#a34434;margin-top:2px">Borrar</button>`:"—"}</td></tr>`).join("");
     }
     return `<tr style="${r.afectaNota?"background:#f9edeb":""}">
       <td>${esc(a.nombre)}</td>
@@ -1159,7 +1232,6 @@ function vGrilla(){
   </section>`;
 }
 window.toggleDetalle = id => { abierto = abierto===id ? null : id; render(); };
-window.borrarReg = id => { if(confirm("¿Eliminar este registro?")){ D.registros = D.registros.filter(r=>r.id!==id); guardar(); render(); } };
 
 // ── Informe GEI ──
 function vGEI(){
@@ -1198,7 +1270,28 @@ function vGEI(){
   </section>`;
 }
 
-// ── Informe individual por alumno ──
+window.archivarAntecedentes = (alumnoId, periodo) => {
+  if(!D.adminLogged){ alert("Solo dirección puede archivar antecedentes."); return; }
+  if(!confirm(`¿Archivar todos los registros de este período como antecedentes?\n\nLos datos se guardarán en el historial del alumno y en el próximo período empezará de cero.`)) return;
+  
+  const regsAArchivar = D.registros.filter(r => r.alumnoId===alumnoId && r.periodo===periodo);
+  const reconAArchivar = D.reconocimientos.filter(r => r.alumnoId===alumnoId && r.periodo===periodo);
+  
+  if(regsAArchivar.length === 0 && reconAArchivar.length === 0){ alert("No hay registros para archivar en este período."); return; }
+  
+  // Mover a antecedentes
+  regsAArchivar.forEach(r => { D.antecedentes.push({...r, fechaArchivo: new Date().toISOString().slice(0,10)}); });
+  reconAArchivar.forEach(r => { D.antecedentes.push({...r, fechaArchivo: new Date().toISOString().slice(0,10)}); });
+  
+  // Eliminar de registros actuales
+  D.registros = D.registros.filter(r => !(r.alumnoId===alumnoId && r.periodo===periodo));
+  D.reconocimientos = D.reconocimientos.filter(r => !(r.alumnoId===alumnoId && r.periodo===periodo));
+  
+  guardar(); render();
+  alert(`✓ Archivado\n\nLlamados: ${regsAArchivar.length}\nReconocimientos: ${reconAArchivar.length}\n\nTodos los datos quedan como antecedentes del alumno.`);
+};
+
+// ── Informe individual ──
 let alumnoInforme = "";
 function vInforme(){
   const pN = PERIODOS.find(p=>p.id===D.periodo).nombre;
@@ -1219,7 +1312,14 @@ function vInforme(){
 
   const al = D.alumnos.find(a=>a.id===alumnoInforme);
   if(!al){ alumnoInforme=""; return vInforme(); }
-  const r = resumenAlumno(al.id);
+  
+  // Obtener fechas del filtro
+  const fechaDesde = document.getElementById("inFechaDesde")?.value || "2000-01-01";
+  const fechaHasta = document.getElementById("inFechaHasta")?.value || "2099-12-31";
+  
+  // Generar resumen filtrando por fecha
+  let r = resumenAlumno(al.id);
+  r.regs = r.regs.filter(reg => reg.fecha >= fechaDesde && reg.fecha <= fechaHasta);
   const okeyBase = al.id+"_"+D.periodo;
   const obsKey = okeyBase+"_obs";
   const detalle = r.regs.length
@@ -1269,8 +1369,11 @@ function vInforme(){
   const titularAlumno = titularDe(al.nivel, al.grado);
 
   return `<section class="card">
-    <h2 class="no-print">Informe individual de convivencia</h2>
-    ${selector}
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <div><label class="lbl">Desde (fecha)</label><input type="date" id="inFechaDesde" value="${new Date().getFullYear()}-01-01" onchange="render()"></div>
+      <div><label class="lbl">Hasta (fecha)</label><input type="date" id="inFechaHasta" value="${new Date().toISOString().slice(0,10)}" onchange="render()"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btnMin" onclick="document.getElementById('inFechaDesde').value='${new Date().getFullYear()}-01-01';document.getElementById('inFechaHasta').value='${new Date().toISOString().slice(0,10)}';render()">Limpiar filtro</button></div>
+    </div>
     <div style="border:2px solid #1d3a5f;padding:24px 26px;background:#fff">
       <div style="text-align:center;border-bottom:3px double #1d3a5f;padding-bottom:12px;margin-bottom:16px">
         <div style="font-size:17px;font-weight:700;color:#1d3a5f">${esc(D.config.escuela)}</div>
@@ -1296,6 +1399,38 @@ function vInforme(){
       <h3 style="font-size:15px;color:#1d3a5f;margin:18px 0 4px">4 · Observaciones del docente</h3>
       <textarea rows="3" style="width:100%;font-size:14px" placeholder="Apreciación global, atenuantes o agravantes considerados, compromisos asumidos…"
         onchange="D.informeObs['${obsKey}']=this.value;guardar()">${esc(D.informeObs[obsKey]||"")}</textarea>
+      
+      ${D.antecedentes.filter(a => a.alumnoId === al.id).length > 0 
+        ? `<h3 style="font-size:15px;color:#8a6d2f;margin:18px 0 4px">📋 Antecedentes históricos del alumno</h3>
+           <div style="background:#fffbf0;padding:12px;border-left:3px solid #c9b06a;font-size:13.5px;color:#5a5346;margin:8px 0">
+             <p><b>Estos son registros archivados de períodos anteriores.</b> Se conservan como historial del alumno cuando ha cambiado de grado o finalizó un período.</p>
+             ${D.antecedentes.filter(a => a.alumnoId === al.id).map((ant, i) => {
+               if(ant.faltaId) { // es un registro
+                 const falta = CATALOGO.find(f => f.id === ant.faltaId);
+                 return `<div style="margin:6px 0;padding:6px;background:#fff;border-radius:3px">
+                   <b>${ant.fecha}</b> · Período: ${ant.periodo} · Año: ${ant.anoEscolar || "—"}
+                   <br><i style="font-size:12px">${esc(falta?.nombre || ant.texto || "—")}</i>
+                   ${ant.docenteNombre ? `<br><span style="font-size:12px;color:#5a5346">Registró: ${esc(ant.docenteNombre)}</span>` : ""}
+                 </div>`;
+               } else { // es un reconocimiento
+                 return `<div style="margin:6px 0;padding:6px;background:#faf6f1;border-left:2px solid #2e5e3f;border-radius:2px">
+                   <b>${ant.fecha}</b> · 🌱 Reconocimiento · Año: ${ant.anoEscolar || "—"}
+                   <br><span style="font-weight:700;color:#2e5e3f">${esc(ant.virtudNombre || "—")}</span>
+                 </div>`;
+               }
+             }).join("")}
+           </div>`
+        : ""
+      }
+      
+      <div style="display:flex;justify-content:space-between;gap:30px;margin-top:44px;font-size:13.5px" class="no-print">
+        <div style="flex:1">
+          ${D.adminLogged && D.gradoActivo
+            ? `<button class="btn" onclick="archivarAntecedentes('${al.id}','${D.periodo}')" style="width:100%;font-size:13px">📦 Archivar período como antecedentes</button>`
+            : ""
+          }
+        </div>
+      </div>
       <div style="display:flex;justify-content:space-between;gap:30px;margin-top:44px;font-size:13.5px">
         <div style="flex:1;border-top:1px solid #2b2519;text-align:center;padding-top:4px">Firma del docente</div>
         <div style="flex:1;border-top:1px solid #2b2519;text-align:center;padding-top:4px">Firma de Dirección</div>
@@ -1332,7 +1467,8 @@ function vRespaldo(){
     <p style="font-size:14.5px">Los datos se guardan en este navegador. Para no perderlos (o pasarlos a otra computadora), exportá un respaldo cada tanto.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn" onclick="exportar()">Descargar respaldo (.json)</button>
-      <label class="btn" style="display:inline-block;cursor:pointer">Restaurar respaldo…<input type="file" accept=".json" style="display:none" onchange="importar(this)"></label>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">Restaurar respaldo…
+        <input type="file" accept=".json" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importar(this)"></label>
       <button class="btnMin" onclick="borrarTodo()">Borrar todos los datos</button>
     </div></section>`;
 }
