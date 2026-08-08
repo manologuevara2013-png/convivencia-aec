@@ -43,6 +43,10 @@
     section.card { margin:14px 10px 0; padding:16px 14px; }
     h2 { font-size:18px; }
     input, select, textarea { font-size:16px; }
+    table { font-size:12.5px; }
+    th { font-size:11px; padding:6px 8px; }
+    td { padding:6px 8px; }
+    table { display:block; overflow-x:auto; white-space:nowrap; }
   }
   h2 { margin:0 0 14px; font-size:21px; color:#1d3a5f; border-bottom:2px solid #c9b06a; padding-bottom:8px; }
   label.lbl { display:block; font-size:12px; letter-spacing:1.2px; text-transform:uppercase; color:#5a5346; margin:10px 0 4px; font-family:'Trebuchet MS',sans-serif; }
@@ -98,12 +102,7 @@
 
   <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:220px;border-left:1px solid #c9b06a;padding-left:12px">
     <label class="lbl" style="color:#c9b06a">🔐 Acceso administrativo</label>
-    ${!D.adminLogged 
-      ? `<input id="adminPass" type="password" placeholder="Clave de dirección" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700" onkeydown="if(event.key==='Enter')loginAdmin()">
-         <button class="btnMin" onclick="loginAdmin()" style="font-size:12px">Entrar</button>`
-      : `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa</span>
-         <button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`
-    }
+    <div id="adminPanel"></div>
     <div class="saved" id="adminMsg"></div>
   </div>
 </header>
@@ -116,7 +115,7 @@
     <div>Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II — Nivel Primario</div>
     <div style="margin-top:6px">Los datos se guardan en este navegador. Usá el botón de respaldo para exportarlos.</div>
     <div style="margin-top:4px;font-style:italic">Educamos en la verdad y el bien</div>
-    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 2026.13 · Informes por fecha + Antecedentes históricos</div>
+    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 2026.14 · Bug fixes: panel admin + Registrar llamado + responsive tabla</div>
   </div>
 </footer>
 
@@ -301,6 +300,14 @@ function resumenAlumno(id){
 
 // ── Render ──
 function render(){
+  // Panel administrativo
+  const adminPanel = document.getElementById("adminPanel");
+  if(D.adminLogged){
+    adminPanel.innerHTML = `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa</span><button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`;
+  } else {
+    adminPanel.innerHTML = `<input id="adminPass" type="password" placeholder="Clave de dirección" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700" onkeydown="if(event.key==='Enter')loginAdmin()"><button class="btnMin" onclick="loginAdmin()" style="font-size:12px">Entrar</button>`;
+  }
+  
   // año escolar
   const sa = document.getElementById("selAno");
   const anosDisp = [...new Set([...D.registros.map(r => r.anoEscolar || "2026"), ...D.reconocimientos.map(r => r.anoEscolar || "2026"), "2024", "2025", "2026", "2027"])].sort().reverse();
@@ -1164,7 +1171,7 @@ function vRegistro(){
       <div><label class="lbl">Acción reparadora propuesta</label>
         <textarea rows="3" style="width:100%" placeholder="Pedido de disculpas, reflexión guiada, compromiso de mejora…" onchange="form.reparadora=this.value">${esc(form.reparadora)}</textarea></div>
     </div>
-    <button class="btn" ${(!form.alumnoId||!falta)?"disabled":""} onclick="registrar()">Registrar llamado</button>
+    <button class="btn" onclick="registrar()">Registrar llamado</button>
     ${form.ok?`<div class="aviso">${form.ok}</div>`:""}
   </section>`;
 }
