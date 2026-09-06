@@ -53,7 +53,7 @@
 // ============================================================================
 // CONFIG
 // ============================================================================
-const URL_SUPABASE = 'https://navsfrfgyyjxckmincmb.supabase.co/rest/v1/';
+const URL_SUPABASE = 'https://navsfrfgyyjxckmincmb.supabase.co';
 const KEY_SUPABASE = 'sb_publishable_l_ZokKjDroT6MxMtUsMxpA_nbbIMQ-l';
 
 let supabase = null;
@@ -116,8 +116,9 @@ function mostrarLogin() {
         '<label>Email</label>' +
         '<input id="email" type="email" value="manologuevara2013@icloud.com">' +
         '<label>Contraseña</label>' +
-        '<input id="pass" type="password" value="direccion">' +
+        '<input id="pass" type="password" value="direccion123">' +
         '<button onclick="hacerLogin()">Ingresar</button>' +
+        '<button onclick="hacerRegistro()" style="background:#2e5e3f;margin-top:8px">Crear cuenta nueva</button>' +
         '<div id="msgLogin" class="status"></div>' +
       '</div>' +
     '</div>';
@@ -125,7 +126,38 @@ function mostrarLogin() {
   document.getElementById('footer').innerHTML = 
     '<div style="color:#1d3a5f;font-weight:700">© 2026 Eduardo H. Guevara</div>' +
     '<div>Colegio FASTA Juan Pablo II</div>' +
-    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 Supabase</div>';
+    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.1 Supabase</div>';
+}
+
+async function hacerRegistro() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  
+  if (!email || !pass) {
+    mostrarMsg('error', 'Ingresá email y contraseña');
+    return;
+  }
+  
+  if (pass.length < 6) {
+    mostrarMsg('error', 'La contraseña debe tener al menos 6 caracteres');
+    return;
+  }
+  
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Creando cuenta...';
+  
+  try {
+    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    if (error) throw error;
+    
+    mostrarMsg('success', '✓ Cuenta creada! Ahora tocá "Ingresar"');
+  } catch (e) {
+    mostrarMsg('error', 'Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Crear cuenta nueva';
+  }
 }
 
 async function hacerLogin() {
