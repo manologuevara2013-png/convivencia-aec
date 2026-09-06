@@ -258,10 +258,12 @@ async function sincronizarASupabase(){
 async function cargarDeSupabase(){
   if (!sb || !usuarioLog) return;
   try {
-    const { data, error } = await sb.from('app_state').select('data').eq('user_id', usuarioLog.id).single();
+    const { data, error } = await sb.from('app_state').select('data').eq('user_id', usuarioLog.id).maybeSingle();
     if (data && data.data) {
       D = Object.assign(D, data.data);
       console.log('✓ Datos cargados de Supabase');
+    } else {
+      console.log('ℹ Sin datos previos en Supabase (primer uso)');
     }
   } catch(e){ console.error('Error carga:', e); }
 }
@@ -342,8 +344,19 @@ function resumenAlumno(id){
 function render(){
   // Panel administrativo
   const adminPanel = document.getElementById("adminPanel");
-  if(D.adminLogged){
-    adminPanel.innerHTML = `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa</span><button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`;
+  if (D.usuarioActual && modoOnline){
+    const rol = D.usuarioActual.rol;
+    const colorRol = (rol==='direccion'||rol==='admin') ? '#a34434' : '#1d3a5f';
+    const infoExtra = rol==='docente' ? ` · ${esc(D.usuarioActual.nivel||'')} ${esc(D.usuarioActual.grado||'')}` : '';
+    adminPanel.innerHTML = `
+      <div style="font-size:12px;color:#5a5346;line-height:1.4">
+        <div style="color:${colorRol};font-weight:700;text-transform:uppercase">${esc(rol)}${esc(infoExtra)}</div>
+        <div style="font-size:11px">${esc(D.usuarioActual.nombre || D.usuarioActual.email)}</div>
+      </div>
+      <button class="btnMin" onclick="cerrarSesionSB()" style="font-size:12px;background:#a34434;color:#fff;border:none;margin-left:8px">Cerrar sesión</button>
+    `;
+  } else if(D.adminLogged){
+    adminPanel.innerHTML = `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa (local)</span><button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`;
   } else {
     adminPanel.innerHTML = `<input id="adminPass" type="password" placeholder="Clave de dirección" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700" onkeydown="if(event.key==='Enter')loginAdmin()"><button class="btnMin" onclick="loginAdmin()" style="font-size:12px">Entrar</button>`;
   }
@@ -364,8 +377,22 @@ function render(){
   const sg = document.getElementById("selGrado");
   const grs = gradosDisponibles();
   sg.innerHTML = `<option value="">Todos los grados${D.nivelActivo?` de ${D.nivelActivo}`:""}</option>` + grs.map(g=>`<option value="${esc(g)}" ${g===D.gradoActivo?"selected":""}>${esc(g)}</option>`).join("");
-  // pestañas
-  const tabs = [
+  
+  // Si es docente, bloquear selectores (solo puede ver SU grado)
+  if (D.usuarioActual?.rol === 'docente') {
+    sn.disabled = true;
+    sg.disabled = true;
+    sn.style.opacity = '0.6';
+    sg.style.opacity = '0.6';
+    sn.title = 'Solo tu grado asignado';
+    sg.title = 'Solo tu grado asignado';
+  }
+  // pestañas según rol
+  const rolActual = D.usuarioActual?.rol || 'admin_local';
+  const esDireccion = rolActual === 'direccion' || rolActual === 'admin' || rolActual === 'admin_local';
+  const esDocente = rolActual === 'docente';
+  
+  let tabs = [
     ["rapido","⚡ Modo rápido"],
     ["registro","Registrar llamado"],
     ["reconocer","🌱 Reconocer virtud"],
@@ -373,22 +400,33 @@ function render(){
     ["gei","Informe GEI (curso)"],
     ["informe","Informe por alumno"],
     ["alumnos","Alumnos"],
-    ["personal","Personal docente"],
-    ["guia","Guía del AEC"],
-    ["respaldo","Respaldo"],
   ];
+  
+  // Solo dirección/admin ven estos tabs
+  if (esDireccion) {
+    tabs.push(["personal","Personal docente"]);
+    tabs.push(["usuarios","👥 Usuarios"]);
+    tabs.push(["auditoria","📜 Auditoría"]);
+    tabs.push(["respaldo","Respaldo"]);
+  }
+  
+  tabs.push(["guia","Guía del AEC"]);
+  
   document.getElementById("tabs").innerHTML = tabs.map(([id,n])=>`<button class="${tab===id?"on":""}" onclick="irTab('${id}')">${n}</button>`).join("");
   const M = document.getElementById("main");
   if (tab==="rapido") M.innerHTML = vRapido();
   else if (tab==="reconocer") M.innerHTML = vReconocer();
-  else if (tab==="personal") M.innerHTML = vPersonal();
+  else if (tab==="personal" && esDireccion) M.innerHTML = vPersonal();
   else if (tab==="alumnos") M.innerHTML = vAlumnos();
   else if (tab==="registro") M.innerHTML = vRegistro();
   else if (tab==="grilla") M.innerHTML = vGrilla();
   else if (tab==="gei") M.innerHTML = vGEI();
   else if (tab==="informe") M.innerHTML = vInforme();
+  else if (tab==="usuarios" && esDireccion) M.innerHTML = vUsuarios();
+  else if (tab==="auditoria" && esDireccion) M.innerHTML = vAuditoria();
   else if (tab==="guia") M.innerHTML = vGuia();
-  else M.innerHTML = vRespaldo();
+  else if (esDireccion) M.innerHTML = vRespaldo();
+  else M.innerHTML = vRapido();
 }
 window.irTab = t => { tab=t; render(); };
 document.getElementById("selDocente").addEventListener("change", e => { D.docenteActivo=e.target.value; guardar(); render(); });
@@ -1544,7 +1582,254 @@ window.borrarTodo = () => {
   }
 };
 
-// ─── INICIO CON LOGIN SUPABASE ───
+// ─── INICIO CON LOGIN SUPABASE + ROLES ───
+
+// TAB: Gestión de Usuarios (solo dirección/admin)
+function vUsuarios(){
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin')) {
+    return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden gestionar usuarios.</p></div>';
+  }
+  
+  const lista = D.usuariosSistema || [];
+  const rows = lista.map(u => `
+    <tr>
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.nombre || '—')}</td>
+      <td><strong style="color:${u.rol==='direccion'||u.rol==='admin'?'#a34434':'#1d3a5f'}">${esc(u.rol)}</strong></td>
+      <td>${esc(u.nivel || '—')}</td>
+      <td>${esc(u.grado || '—')}</td>
+      <td>${u.activo ? '✓' : '✗'}</td>
+      <td>
+        ${u.id !== usuarioLog?.id ? `
+          <button class="btnMin" onclick="cambiarRolUsuario('${u.id}')">Editar</button>
+          <button class="btnMin" onclick="borrarUsuarioSistema('${u.id}','${esc(u.email)}')" style="color:#a34434">Borrar</button>
+        ` : '<em style="color:#8a8069">tú mismo</em>'}
+      </td>
+    </tr>
+  `).join('');
+  
+  return `
+    <div class="card">
+      <h2>👥 Gestión de Usuarios (Docentes y Dirección)</h2>
+      <p style="color:#8a8069;font-size:13px;margin-bottom:16px">Aquí Dirección/Admin puede crear docentes y asignarles su grado. Los docentes solo verán su grado asignado.</p>
+      
+      <h3 style="color:#1d3a5f;margin-top:16px">➕ Crear nuevo docente</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div>
+          <label class="lbl">Email del docente</label>
+          <input id="nuEmail" type="email" placeholder="docente@escuela.edu.ar">
+        </div>
+        <div>
+          <label class="lbl">Contraseña temporal (mín 6)</label>
+          <input id="nuPass" type="text" placeholder="ej: docente2026">
+        </div>
+        <div>
+          <label class="lbl">Nombre completo</label>
+          <input id="nuNombre" type="text" placeholder="Nombre y Apellido">
+        </div>
+        <div>
+          <label class="lbl">Rol</label>
+          <select id="nuRol" onchange="mostrarCamposRol()">
+            <option value="docente">Docente</option>
+            <option value="direccion">Dirección</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div id="nuNivelDiv">
+          <label class="lbl">Nivel</label>
+          <select id="nuNivel">
+            <option value="">— Elegir —</option>
+            <option value="Inicial">Inicial</option>
+            <option value="Primario">Primario</option>
+            <option value="Secundario">Secundario</option>
+          </select>
+        </div>
+        <div id="nuGradoDiv">
+          <label class="lbl">Grado / Sala / Año</label>
+          <input id="nuGrado" type="text" placeholder="ej: 3º grado">
+        </div>
+      </div>
+      <button class="btn" onclick="crearNuevoUsuario()" style="margin-top:12px">Crear usuario</button>
+      <div id="msgUsuario" style="margin-top:12px"></div>
+      
+      <h3 style="color:#1d3a5f;margin-top:24px">📋 Usuarios del sistema (${lista.length})</h3>
+      <div style="overflow-x:auto">
+        <table style="margin-top:8px">
+          <thead>
+            <tr>
+              <th>Email</th><th>Nombre</th><th>Rol</th><th>Nivel</th><th>Grado</th><th>Activo</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#8a8069">Sin usuarios. Refrescá con el botón abajo.</td></tr>'}</tbody>
+        </table>
+      </div>
+      <button class="btnMin" onclick="cargarUsuariosSistema()" style="margin-top:12px">🔄 Refrescar lista</button>
+    </div>
+  `;
+}
+
+window.mostrarCamposRol = function(){
+  const rol = document.getElementById('nuRol').value;
+  const nivelDiv = document.getElementById('nuNivelDiv');
+  const gradoDiv = document.getElementById('nuGradoDiv');
+  if (rol === 'docente') {
+    nivelDiv.style.display = '';
+    gradoDiv.style.display = '';
+  } else {
+    nivelDiv.style.display = 'none';
+    gradoDiv.style.display = 'none';
+  }
+};
+
+window.crearNuevoUsuario = async function(){
+  if (!sb) return alert('Sin conexión a Supabase');
+  const email = document.getElementById('nuEmail').value.trim();
+  const pass = document.getElementById('nuPass').value;
+  const nombre = document.getElementById('nuNombre').value.trim();
+  const rol = document.getElementById('nuRol').value;
+  const nivel = document.getElementById('nuNivel')?.value || null;
+  const grado = document.getElementById('nuGrado')?.value.trim() || null;
+  const msg = document.getElementById('msgUsuario');
+  
+  if (!email || pass.length < 6 || !nombre) {
+    msg.innerHTML = '<span style="color:#a34434">Completá email, nombre y clave (mín 6 caracteres)</span>';
+    return;
+  }
+  
+  if (rol === 'docente' && (!nivel || !grado)) {
+    msg.innerHTML = '<span style="color:#a34434">Para docente, indicá nivel y grado</span>';
+    return;
+  }
+  
+  msg.innerHTML = '<span style="color:#8a8069">Creando usuario...</span>';
+  
+  try {
+    // 1) Crear cuenta en Supabase Auth (signup)
+    const { data: authData, error: authError } = await sb.auth.signUp({ email, password: pass });
+    if (authError) throw authError;
+    
+    // 2) Insertar en tabla usuarios (metadata)
+    const nuevoId = authData.user?.id;
+    if (!nuevoId) throw new Error('No se pudo obtener ID del nuevo usuario');
+    
+    const { error: insError } = await sb.from('usuarios').insert({
+      id: nuevoId,
+      email: email,
+      nombre: nombre,
+      rol: rol,
+      nivel: rol==='docente' ? nivel : null,
+      grado: rol==='docente' ? grado : null,
+      activo: true
+    });
+    if (insError) throw insError;
+    
+    // 3) Auditar
+    await registrarAuditoria('CREAR_USUARIO', `${rol}: ${email} (${nombre})`);
+    
+    msg.innerHTML = '<span style="color:#2e5e3f">✓ Usuario creado. Compartí las credenciales con el docente.</span>';
+    document.getElementById('nuEmail').value = '';
+    document.getElementById('nuPass').value = '';
+    document.getElementById('nuNombre').value = '';
+    document.getElementById('nuGrado').value = '';
+    
+    // Refrescar lista
+    await cargarUsuariosSistema();
+  } catch(e){
+    msg.innerHTML = '<span style="color:#a34434">Error: ' + e.message + '</span>';
+  }
+};
+
+window.cargarUsuariosSistema = async function(){
+  if (!sb) return;
+  try {
+    const { data } = await sb.from('usuarios').select('*').order('rol', {ascending:true}).order('email');
+    D.usuariosSistema = data || [];
+    render();
+  } catch(e){ console.error('Error carga usuarios:', e); }
+};
+
+window.cambiarRolUsuario = async function(id){
+  const u = (D.usuariosSistema || []).find(x=>x.id===id);
+  if (!u) return;
+  const nuevoRol = prompt('Cambiar rol de ' + u.email + '\\n\\nRoles válidos: direccion, admin, docente', u.rol);
+  if (!nuevoRol || !['direccion','admin','docente'].includes(nuevoRol)) return;
+  
+  let nivel = u.nivel, grado = u.grado;
+  if (nuevoRol === 'docente') {
+    nivel = prompt('Nivel (Inicial/Primario/Secundario):', u.nivel || 'Primario');
+    grado = prompt('Grado:', u.grado || '');
+    if (!nivel || !grado) return;
+  } else {
+    nivel = null; grado = null;
+  }
+  
+  try {
+    await sb.from('usuarios').update({rol: nuevoRol, nivel, grado}).eq('id', id);
+    await registrarAuditoria('CAMBIAR_ROL', `${u.email}: ${u.rol} → ${nuevoRol}`);
+    alert('✓ Rol actualizado');
+    cargarUsuariosSistema();
+  } catch(e){ alert('Error: ' + e.message); }
+};
+
+window.borrarUsuarioSistema = async function(id, email){
+  if (!confirm('¿Borrar el usuario ' + email + '?\\n\\nSe eliminará solo del sistema de roles. La cuenta de acceso queda en Supabase Auth.')) return;
+  try {
+    await sb.from('usuarios').delete().eq('id', id);
+    await registrarAuditoria('BORRAR_USUARIO', email);
+    alert('✓ Usuario eliminado del sistema');
+    cargarUsuariosSistema();
+  } catch(e){ alert('Error: ' + e.message); }
+};
+
+// TAB: Auditoría (solo dirección/admin)
+function vAuditoria(){
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin')) {
+    return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden ver el historial de auditoría.</p></div>';
+  }
+  
+  const lista = D.auditoriaSistema || [];
+  const rows = lista.map(a => {
+    const d = a.datos_nuevo || {};
+    const fecha = a.created_at ? new Date(a.created_at).toLocaleString('es-AR') : '—';
+    return `
+      <tr>
+        <td style="font-size:12px">${esc(fecha)}</td>
+        <td>${esc(d.usuario_email || '—')}</td>
+        <td><strong>${esc(d.usuario_rol || '—')}</strong></td>
+        <td>${esc(a.operacion || d.accion || '—')}</td>
+        <td style="font-size:13px">${esc(d.detalle || '—')}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  return `
+    <div class="card">
+      <h2>📜 Historial de Auditoría</h2>
+      <p style="color:#8a8069;font-size:13px;margin-bottom:16px">Cada acción de modificar, borrar o crear queda registrada aquí. Solo Dirección/Admin puede ver este historial.</p>
+      
+      <button class="btnMin" onclick="cargarAuditoriaSistema()">🔄 Refrescar</button>
+      
+      <div style="overflow-x:auto;margin-top:12px">
+        <table>
+          <thead>
+            <tr><th>Fecha/Hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th></tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#8a8069">Sin registros de auditoría todavía.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+window.cargarAuditoriaSistema = async function(){
+  if (!sb) return;
+  try {
+    const { data } = await sb.from('auditoria').select('*').order('created_at', {ascending:false}).limit(200);
+    D.auditoriaSistema = data || [];
+    render();
+  } catch(e){ console.error('Error carga auditoría:', e); }
+};
+
 async function iniciarApp(){
   // Esperar librería Supabase
   if (typeof window.supabase === 'undefined') {
@@ -1557,17 +1842,92 @@ async function iniciarApp(){
     if (session) {
       usuarioLog = session.user;
       modoOnline = true;
+      await cargarRolUsuario();
       await cargarDeSupabase();
+      aplicarPermisosRol();
+      // Cargar usuarios y auditoría en segundo plano si es dirección/admin
+      if (D.usuarioActual?.rol === 'direccion' || D.usuarioActual?.rol === 'admin') {
+        cargarUsuariosSistema();
+        cargarAuditoriaSistema();
+      }
       render();
     } else {
       mostrarLoginPantalla();
     }
   } catch(e){
     console.error('Error Supabase:', e);
-    // Si falla Supabase, usar solo localStorage
     modoOnline = false;
     render();
   }
+}
+
+// Cargar rol y permisos del usuario logueado
+async function cargarRolUsuario(){
+  if (!sb || !usuarioLog) return;
+  try {
+    const { data, error } = await sb.from('usuarios').select('*').eq('id', usuarioLog.id).maybeSingle();
+    if (data) {
+      D.usuarioActual = {
+        id: usuarioLog.id,
+        email: data.email,
+        nombre: data.nombre || data.email,
+        rol: data.rol,
+        nivel: data.nivel,
+        grado: data.grado
+      };
+      console.log('✓ Rol cargado:', data.rol, data.nivel || '', data.grado || '');
+    } else {
+      // Usuario logueado pero sin rol asignado
+      D.usuarioActual = {
+        id: usuarioLog.id,
+        email: usuarioLog.email,
+        nombre: usuarioLog.email,
+        rol: 'pendiente'
+      };
+      console.log('⚠ Usuario sin rol asignado');
+    }
+  } catch(e){ console.error('Error rol:', e); }
+}
+
+// Aplicar filtros según rol
+function aplicarPermisosRol(){
+  if (!D.usuarioActual) return;
+  const rol = D.usuarioActual.rol;
+  
+  // DOCENTE: forzar filtros a su grado asignado, y activar como docente actual
+  if (rol === 'docente') {
+    D.nivelActivo = D.usuarioActual.nivel || '';
+    D.gradoActivo = D.usuarioActual.grado || '';
+    // Buscar docente en la lista para setear docenteActivo
+    const doc = (D.docentes || []).find(d => d.email === D.usuarioActual.email);
+    if (doc) D.docenteActivo = doc.id;
+    // Docente NO tiene admin
+    D.adminLogged = false;
+  }
+  
+  // DIRECCIÓN/ADMIN: acceso total, admin activado
+  if (rol === 'direccion' || rol === 'admin') {
+    D.adminLogged = true;
+  }
+}
+
+// Registrar acción en auditoría (para acciones de admin)
+async function registrarAuditoria(accion, detalle){
+  if (!sb || !usuarioLog) return;
+  try {
+    await sb.from('auditoria').insert({
+      usuario_id: usuarioLog.id,
+      operacion: accion,
+      tabla: 'app_state',
+      datos_nuevo: { 
+        accion: accion,
+        detalle: detalle,
+        usuario_email: D.usuarioActual?.email,
+        usuario_rol: D.usuarioActual?.rol,
+        fecha: new Date().toISOString()
+      }
+    });
+  } catch(e){ console.error('Error auditoría:', e); }
 }
 
 function mostrarLoginPantalla(){
