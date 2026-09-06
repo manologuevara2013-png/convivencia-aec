@@ -160,9 +160,11 @@ const ASPECTOS = {
   EN:{nombre:"Cuidado del entorno",desc:"Ambiente sano y ordenado, cuidado del mobiliario y los espacios"},
 };
 const PERIODOS = [
-  {id:"P1",nombre:"1er informe (al 30/06)"},
-  {id:"P2",nombre:"2do informe (al 15/09)"},
-  {id:"P3",nombre:"3er informe (cierre)"},
+  {id:"P1",nombre:"Primer Período"},
+  {id:"P2",nombre:"Segundo Período"},
+  {id:"P3",nombre:"Calificación Final"},
+  {id:"P4",nombre:"Intensificación"},
+  {id:"P5",nombre:"Acreditación"},
 ];
 const EQUIV = {leve:1, moderada:2, grave:3};
 const VALORACIONES = ["Muy bueno","Bueno","Regular"];
@@ -377,6 +379,10 @@ function render(){
   const sg = document.getElementById("selGrado");
   const grs = gradosDisponibles();
   sg.innerHTML = `<option value="">Todos los grados${D.nivelActivo?` de ${D.nivelActivo}`:""}</option>` + grs.map(g=>`<option value="${esc(g)}" ${g===D.gradoActivo?"selected":""}>${esc(g)}</option>`).join("");
+  
+  // Período de informe
+  const sp = document.getElementById("selPeriodo");
+  sp.innerHTML = PERIODOS.map(p=>`<option value="${p.id}" ${p.id===D.periodo?"selected":""}>${esc(p.nombre)}</option>`).join("");
   
   // Si es docente, bloquear selectores (solo puede ver SU grado)
   if (D.usuarioActual?.rol === 'docente') {
