@@ -1,301 +1,1631 @@
 <!DOCTYPE html>
 <html lang="es">
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  Registro de Convivencia AEC 2026 → GEI
+  ─────────────────────────────────────────────────────────────────────
+  © 2026 Eduardo H. Guevara · Todos los derechos reservados.
+  Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II
+  Nivel Primario · Mendoza, Argentina.
+
+  Queda prohibida la copia, reproducción, distribución, modificación o
+  uso en instituciones o proyectos ajenos al establecimiento autorizado
+  sin autorización expresa y por escrito del autor.
+
+  Ley 11.723 de Régimen Legal de la Propiedad Intelectual (Argentina).
+  ═══════════════════════════════════════════════════════════════════════
+-->
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Convivencia AEC 2026</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f2ec; color: #2b2519; }
-    header { background: #1d3a5f; color: #fdfcf8; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    h1 { font-size: 24px; margin-bottom: 4px; }
-    .sub { font-size: 13px; color: #c9b06a; }
-    nav { background: #fff; padding: 10px 20px; display: flex; gap: 10px; overflow-x: auto; border-bottom: 1px solid #e6dfcd; }
-    nav button { padding: 8px 14px; background: transparent; border: none; color: #5a5346; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; border-bottom: 3px solid transparent; }
-    nav button.on { color: #1d3a5f; border-bottom-color: #c9b06a; }
-    main { max-width: 800px; margin: 0 auto; padding: 20px; }
-    .card { background: #fff; padding: 20px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
-    .login-form { max-width: 380px; margin: 40px auto; }
-    h2 { font-size: 20px; color: #1d3a5f; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #c9b06a; padding-bottom: 10px; }
-    label { display: block; font-size: 12px; text-transform: uppercase; color: #5a5346; margin: 12px 0 4px; }
-    input, select { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #b8ae95; border-radius: 3px; font-size: 15px; }
-    input:focus, select:focus { outline: 2px solid #8a6d2f; }
-    button { width: 100%; padding: 12px; background: #1d3a5f; color: #fdfcf8; border: none; border-radius: 3px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
-    button:hover { background: #0f2342; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .msg { padding: 10px; margin: 10px 0; border-radius: 3px; font-size: 14px; }
-    .success { background: #eef2ec; color: #2e5e3f; border-left: 4px solid #2e5e3f; }
-    .error { background: #f6e3e0; color: #a34434; border-left: 4px solid #a34434; }
-    .info { background: #f0f4f8; color: #1d3a5f; border-left: 4px solid #1d3a5f; }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 8px; background: #1d3a5f; color: #fdfcf8; }
-    td { padding: 8px; border-bottom: 1px solid #e6dfcd; }
-    footer { text-align: center; font-size: 12px; color: #8a8069; margin-top: 40px; padding: 20px; }
-    .status { font-size: 12px; color: #8a8069; margin-top: 20px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Eduardo H. Guevara">
+<meta name="copyright" content="© 2026 Eduardo H. Guevara. Todos los derechos reservados.">
+<meta name="description" content="Aplicación institucional de convivencia — Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II">
+<title>Registro de Convivencia · AEC 2026 → GEI</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif; background:#f2eee4; color:#2b2519; margin:0; padding-bottom:40px; }
+  header { background:#1d3a5f; color:#fdfcf8; padding:24px 28px; border-bottom:5px solid #8a6d2f; display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+  .eyebrow { font-size:12px; letter-spacing:2.5px; text-transform:uppercase; color:#c9b06a; font-family:'Trebuchet MS',sans-serif; }
+  h1 { margin:6px 0 4px; font-size:28px; }
+  .sub { font-size:13.5px; color:#c7d0dd; max-width:560px; }
+  nav { display:flex; flex-wrap:wrap; background:#1d3a5f; padding:0 28px; }
+  nav button { padding:10px 18px; border:none; background:transparent; color:#c7d0dd; font-size:14.5px; cursor:pointer; border-bottom:3px solid transparent; font-family:inherit; }
+  nav button.on { color:#fdfcf8; font-weight:700; border-bottom-color:#c9b06a; background:rgba(255,255,255,.06); }
+  section.card { background:#fdfcf8; margin:22px 28px 0; padding:22px 24px; border:1px solid #d8d0bc; box-shadow:0 1px 3px rgba(43,37,25,.08); }
+  @media (max-width:600px) {
+    header { padding:16px 16px; }
+    h1 { font-size:22px; }
+    .sub { font-size:12.5px; }
+    nav { padding:0 8px; overflow-x:auto; flex-wrap:nowrap; }
+    nav button { padding:10px 12px; font-size:13.5px; white-space:nowrap; }
+    section.card { margin:14px 10px 0; padding:16px 14px; }
+    h2 { font-size:18px; }
+    input, select, textarea { font-size:16px; }
+    table { font-size:12.5px; }
+    th { font-size:11px; padding:6px 8px; }
+    td { padding:6px 8px; }
+    table { display:block; overflow-x:auto; white-space:nowrap; }
+  }
+  h2 { margin:0 0 14px; font-size:21px; color:#1d3a5f; border-bottom:2px solid #c9b06a; padding-bottom:8px; }
+  label.lbl { display:block; font-size:12px; letter-spacing:1.2px; text-transform:uppercase; color:#5a5346; margin:10px 0 4px; font-family:'Trebuchet MS',sans-serif; }
+  input, select, textarea { padding:8px 10px; border:1px solid #b8ae95; border-radius:3px; font-size:15px; background:#fff; color:#2b2519; font-family:inherit; max-width:100%; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid #8a6d2f; outline-offset:1px; }
+  .btn { padding:10px 20px; background:#1d3a5f; color:#fdfcf8; border:none; border-radius:3px; font-size:15px; font-weight:700; cursor:pointer; letter-spacing:.3px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btnMin { padding:4px 10px; background:transparent; color:#a34434; border:1px solid #d8d0bc; border-radius:3px; font-size:12.5px; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th { text-align:left; padding:8px 10px; background:#1d3a5f; color:#fdfcf8; font-size:12.5px; letter-spacing:1px; text-transform:uppercase; font-family:'Trebuchet MS',sans-serif; }
+  td { padding:8px 10px; border-bottom:1px solid #e6dfcd; vertical-align:top; }
+  .panel { background:#f7f4ec; border:1px solid #e0d8c3; padding:12px 14px; margin:12px 0; border-radius:3px; }
+  .aviso { border:1px solid #5c7350; background:#eef2ec; padding:8px 12px; border-radius:3px; font-size:13.5px; margin-top:8px; }
+  .aviso.rojo { border-color:#a34434; background:#f6e3e0; }
+  .badge { display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; border-radius:3px; font-size:12px; font-weight:700; color:#fdfcf8; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:6px 0; }
+  .fila { display:flex; justify-content:space-between; align-items:center; padding:8px 4px; border-bottom:1px solid #e6dfcd; font-size:15px; }
+  .vacio { color:#5a5346; font-style:italic; font-size:14.5px; }
+  .cuadro { width:14px; height:14px; border-radius:2px; border:1px solid #1d3a5f; display:inline-block; margin-right:3px; }
+  footer { text-align:center; font-size:12.5px; color:#8a8069; margin-top:30px; font-style:italic; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:12px 16px; background:#f7f4ec; border:1px solid #c9b06a; border-radius:24px; font-size:15px; cursor:pointer; font-family:inherit; color:#1d3a5f; font-weight:600; }
+  .chip:active { background:#c9b06a; }
+  .chipOn { background:#1d3a5f; color:#fdfcf8; border-color:#1d3a5f; }
+  .chipFalta { border-radius:6px; text-align:left; font-weight:500; font-size:14px; line-height:1.3; max-width:100%; }
+  .inpBig { padding:14px 12px; font-size:16px; width:100%; border:1.5px solid #b8ae95; border-radius:4px; background:#fff; }
+  .btnBig { display:block; width:100%; padding:16px; font-size:17px; margin-top:16px; }
+  .pasoInd { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#8a6d2f; margin-bottom:4px; font-family:'Trebuchet MS',sans-serif; }
+  .saved { font-size:12px; color:#c9b06a; text-align:right; }
+  @media print { nav, .no-print, header, footer { display:none !important; } section.card { margin:0; border:none; box-shadow:none; padding:0; } body { background:#fff; } textarea { border:none; resize:none; } }
+</style>
 </head>
 <body>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
 <header>
-  <h1>Registro de Convivencia AEC 2026</h1>
-  <div class="sub">Sistema compartido · Colegio FASTA Juan Pablo II</div>
+  <div>
+    <div class="eyebrow">Acuerdo Escolar de Convivencia · Nivel Primario · 2026</div>
+    <h1>Registro de Convivencia</h1>
+    <div class="sub">Grilla de llamados de atención → Informe de Normas de Convivencia (GEI · Res. 1949-DGE-22, Anexo II)</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:220px">
+    <label class="lbl" style="color:#c9b06a">Docente que registra</label>
+    <select id="selDocente" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <label class="lbl" style="color:#c9b06a;margin-top:6px">Nivel activo</label>
+    <select id="selNivel" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <label class="lbl" style="color:#c9b06a;margin-top:6px">Grado / curso activo</label>
+    <select id="selGrado" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <label class="lbl" style="color:#c9b06a;margin-top:6px">Año escolar</label>
+    <select id="selAno" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <label class="lbl" style="color:#c9b06a;margin-top:6px">Período de informe</label>
+    <select id="selPeriodo" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700"></select>
+    <div class="saved" id="saved"></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:220px;border-left:1px solid #c9b06a;padding-left:12px">
+    <label class="lbl" style="color:#c9b06a">🔐 Acceso administrativo</label>
+    <div id="adminPanel"></div>
+    <div class="saved" id="adminMsg"></div>
+  </div>
 </header>
 
-<!-- SUPABASE CDN - CARGAR PRIMERO -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
-
-<nav id="navTabs"></nav>
-<main id="contenido"></main>
-<footer id="footer"></footer>
+<nav id="tabs"></nav>
+<main id="main"></main>
+<footer>
+  <div style="border-top:1px solid #d8d0bc;padding-top:12px;max-width:720px;margin:0 auto;line-height:1.6">
+    <div style="color:#1d3a5f;font-weight:700;font-size:12.5px">© 2026 Eduardo H. Guevara · Todos los derechos reservados</div>
+    <div>Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II — Nivel Primario</div>
+    <div style="margin-top:6px">Los datos se guardan en este navegador. Usá el botón de respaldo para exportarlos.</div>
+    <div style="margin-top:4px;font-style:italic">Educamos en la verdad y el bien</div>
+    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 2026.14 · Bug fixes: panel admin + Registrar llamado + responsive tabla</div>
+  </div>
+</footer>
 
 <script>
-// ============================================================================
-// CONFIG
-// ============================================================================
+// ── Catálogo de faltas del AEC 2026 ──
+// aspecto: SI = Cuidado de sí mismo · OT = Cuidado del otro · EN = Cuidado del entorno (Anexo II, Res. 1949-DGE-22)
+const CATALOGO = [
+ {id:"u1",cat:"Presentación personal",texto:"Vestimenta que no es parte del uniforme",gravedad:"leve",aspecto:"SI"},
+ {id:"u2",cat:"Presentación personal",texto:"Bijouterie llamativa o accesorios no correspondientes (anillos, pulseras, expansores, piercing…)",gravedad:"leve",aspecto:"SI"},
+ {id:"u3",cat:"Presentación personal",texto:"Corte de cabello extravagante, largo que no despeja el rostro y/o tintura",gravedad:"leve",aspecto:"SI"},
+ {id:"u4",cat:"Presentación personal",texto:"Maquillaje facial, uñas esmaltadas y/o largas",gravedad:"leve",aspecto:"SI"},
+ {id:"u5",cat:"Presentación personal",texto:"Capuchas, gorros, lentes de sol o auriculares sin autorización",gravedad:"leve",aspecto:"SI"},
+ {id:"u6",cat:"Presentación personal",texto:"Descuido de la higiene personal",gravedad:"leve",aspecto:"SI"},
+ {id:"r1",cat:"Trato respetuoso",texto:"Respuesta inapropiada / descuido en las formas de trato (gestos, actitudes, expresiones)",gravedad:"moderada",aspecto:"OT"},
+ {id:"r2",cat:"Trato respetuoso",texto:"Comentarios irónicos o descalificativos; prácticas discriminatorias hacia pares",gravedad:"moderada",aspecto:"OT"},
+ {id:"r3",cat:"Trato respetuoso",texto:"Comentarios descalificativos o discriminación dirigidos a docentes, directivos o personal",gravedad:"grave",aspecto:"OT"},
+ {id:"r4",cat:"Trato respetuoso",texto:"Agresión física, verbal, psicológica o simbólica; insultos, amenazas, hostigamiento o acoso",gravedad:"grave",aspecto:"OT"},
+ {id:"r5",cat:"Trato respetuoso",texto:"Producir o difundir contenido humillante o lesivo (imágenes, audios, redes sociales)",gravedad:"grave",aspecto:"OT"},
+ {id:"r6",cat:"Trato respetuoso",texto:"Faltas de respeto a directivos, docentes y personal no docente",gravedad:"grave",aspecto:"OT"},
+ {id:"r7",cat:"Trato respetuoso",texto:"Juegos agresivos",gravedad:"moderada",aspecto:"OT"},
+ {id:"r8",cat:"Trato respetuoso",texto:"Robar elementos de los compañeros",gravedad:"grave",aspecto:"OT"},
+ {id:"s1",cat:"Sinceridad",texto:"Ocultar o falsear información que perjudica a otros; arrancar hojas del cuaderno",gravedad:"grave",aspecto:"OT"},
+ {id:"s2",cat:"Sinceridad",texto:"Participación pasiva y consciente en un acto de indisciplina grave",gravedad:"grave",aspecto:"OT"},
+ {id:"s3",cat:"Sinceridad",texto:"Copiarse durante un examen (recuperación a criterio del docente)",gravedad:"grave",aspecto:"SI"},
+ {id:"s4",cat:"Sinceridad",texto:"Plagiar un trabajo y presentarlo como propio",gravedad:"grave",aspecto:"SI"},
+ {id:"s5",cat:"Sinceridad",texto:"Falsificar firmas de padres, docentes o directivos",gravedad:"grave",aspecto:"OT"},
+ {id:"a1",cat:"Ambiente y orden",texto:"Comer en clase, actos o celebraciones (incluye chicle) sin autorización",gravedad:"leve",aspecto:"EN"},
+ {id:"a2",cat:"Ambiente y orden",texto:"Jugar fuera de tiempo y de lugar",gravedad:"leve",aspecto:"EN"},
+ {id:"a3",cat:"Ambiente y orden",texto:"Permanecer en espacios comunes en horas de clase sin autorización",gravedad:"grave",aspecto:"EN"},
+ {id:"a4",cat:"Ambiente y orden",texto:"No guardar silencio cuando es solicitado (formación, arrío, clases, actos)",gravedad:"leve",aspecto:"EN"},
+ {id:"a5",cat:"Ambiente y orden",texto:"Cambiarse de ubicación sin autorización docente",gravedad:"leve",aspecto:"EN"},
+ {id:"a6",cat:"Ambiente y orden",texto:"Negarse a entregar el cuaderno de comunicaciones",gravedad:"moderada",aspecto:"SI"},
+ {id:"a7",cat:"Ambiente y orden",texto:"Actitud negativa frente a las correcciones",gravedad:"moderada",aspecto:"SI"},
+ {id:"a8",cat:"Ambiente y orden",texto:"No hacer llegar en tiempo y forma las notificaciones a los padres",gravedad:"leve",aspecto:"SI"},
+ {id:"a9",cat:"Ambiente y orden",texto:"Escribir mensajes en paredes, bancos u otro mobiliario escolar",gravedad:"grave",aspecto:"EN"},
+ {id:"x0",cat:"Otra falta no tipificada",texto:"Otra falta (describir en observaciones — gravedad a criterio del Equipo Directivo)",gravedad:"leve",aspecto:"SI"},
+];
+const ASPECTOS = {
+  SI:{nombre:"Cuidado de sí mismo",desc:"Presentación personal, higiene, responsabilidad y honradez personal"},
+  OT:{nombre:"Cuidado del otro",desc:"Trato respetuoso, sinceridad hacia los demás, no agresión"},
+  EN:{nombre:"Cuidado del entorno",desc:"Ambiente sano y ordenado, cuidado del mobiliario y los espacios"},
+};
+const PERIODOS = [
+  {id:"P1",nombre:"1er informe (al 30/06)"},
+  {id:"P2",nombre:"2do informe (al 15/09)"},
+  {id:"P3",nombre:"3er informe (cierre)"},
+];
+const EQUIV = {leve:1, moderada:2, grave:3};
+const VALORACIONES = ["Muy bueno","Bueno","Regular"];
+const ACCIONES = {
+  leve:"Llamado de atención oral · orientación personal · nota a los padres · registro en grilla · acción reparadora sencilla (disculpas, reflexión guiada)",
+  moderada:"Llamado escrito en cuaderno y grilla · aviso a Dirección · firma en libro de disciplina · comunicación a la familia · compromiso de mejora · acción reparadora formal",
+  grave:"Aviso a Dirección · firma en libro de disciplina · llamado escrito · citación a la familia (acta disciplinaria) · reflexión y reparación obligatorias · seguimiento institucional",
+};
+
+// ── Proyecto Sembrando Virtudes (reconocimientos) ──
+const VIRTUDES = [
+  { id:"resp", nombre:"Responsabilidad", color:"#1d3a5f", ejemplos:[
+    "Entregó las actividades en tiempo y forma durante toda la semana",
+    "Cumplió con el compromiso asumido en un trabajo grupal",
+    "Reconoció un error y buscó corregirlo",
+  ]},
+  { id:"respt", nombre:"Respeto", color:"#5c7350", ejemplos:[
+    "Escuchó con atención y pidió silencio al resto cuando un compañero estaba hablando",
+    "Esperó su turno para participar sabiendo que le cuesta mucho",
+    "Se dirigió a compañeros con amabilidad en una discusión",
+    "Respetó las diferencias de opinión durante un debate",
+  ]},
+  { id:"solid", nombre:"Solidaridad", color:"#8a6d2f", ejemplos:[
+    "Ayudó espontáneamente a un compañero con una actividad de forma desinteresada",
+    "Compartió materiales con quien los necesitaba sin que se le pida",
+    "Acompañó a un compañero que estaba solo durante el recreo",
+    "Colaboró para integrar a un nuevo alumno",
+  ]},
+  { id:"comp", nombre:"Compañerismo", color:"#a34434", ejemplos:[
+    "Favoreció el trabajo en equipo incluyendo a todos",
+    "Animó a un compañero que tenía dificultades",
+    "Celebró los logros de otros con alegría",
+    "Colaboró para resolver un conflicto de manera pacífica",
+  ]},
+  { id:"esf", nombre:"Esfuerzo y perseverancia", color:"#2e5e3f", ejemplos:[
+    "No se dio por vencido ante una actividad difícil",
+    "Mejoró su desempeño gracias a la constancia",
+    "Solicitó ayuda cuando la necesitó y continuó trabajando",
+    "Se esforzó por superar una dificultad personal",
+  ]},
+  { id:"hon", nombre:"Honestidad", color:"#c9b06a", ejemplos:[
+    "Reconoció un error sin buscar excusas",
+    "Devolvió un objeto perdido",
+    "Actuó con sinceridad ante una situación difícil",
+    "Respetó las normas aun cuando nadie lo estaba observando",
+  ]},
+];
+
+// ── Estado y persistencia ──
+const KEY = "aec2026_convivencia";
+let D = { alumnos:[], docentes:[], titularidades:[], registros:[], reconocimientos:[], antecedentes:[], overrides:{}, reparadas:{}, periodo:"P1", nivelActivo:"", gradoActivo:"", docenteActivo:"", informeObs:{}, config:{escuela:"Colegio FASTA Juan Pablo II", grado:"", docente:""}, adminLogged:false, anoEscolar:"2026" };
+
+// ─── SUPABASE CONFIG ───
 const URL_SUPABASE = 'https://navsfrfgyyjxckmincmb.supabase.co';
 const KEY_SUPABASE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hdnNmcmZneXlqeGNrbWluY21iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MDg0ODAsImV4cCI6MjEwNDI4NDQ4MH0.IWCyH9HvskRRU6pG4e2_1BvQI84qPnSnBmiQBa_q45o';
+let sb = null;
+let usuarioLog = null;
+let modoOnline = false;
 
-let supabase = null;
-let usuario = null;
-let rol = null;
-let alumnos = [];
-let docentes = [];
-let registros = [];
+// Intentar cargar de localStorage primero (fallback)
+try { const raw = localStorage.getItem(KEY); if (raw) D = Object.assign(D, JSON.parse(raw)); } catch(e){}
+let tab = "rapido";
+let form = { alumnoId:"", faltaId:"", fecha: new Date().toISOString().slice(0,10), obs:"", reparadora:"", equiv:null, ok:"" };
+let abierto = null;
+let rapidoOk = "";
 
-// ============================================================================
-// INICIAR
-// ============================================================================
-function inicializar() {
-  console.log('Inicializando...');
-  
-  // Esperar a que Supabase cargue
-  if (typeof window.supabase === 'undefined') {
-    console.log('Supabase no listo, esperando...');
-    setTimeout(inicializar, 500);
-    return;
-  }
-  
+function guardar(){
   try {
-    supabase = window.supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
-    console.log('✓ Supabase creado correctamente');
-  } catch (e) {
-    console.error('Error creando Supabase:', e);
-    document.getElementById('contenido').innerHTML = '<div class="card"><h2 style="color:#a34434">Error</h2><p>' + e.message + '</p></div>';
-    return;
+    localStorage.setItem(KEY, JSON.stringify(D));
+    const savedEl = document.getElementById("saved");
+    if (savedEl) savedEl.textContent = "Guardado " + new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+    // Sincronizar a Supabase en segundo plano
+    if (modoOnline && sb) sincronizarASupabase();
+  } catch(e){ 
+    const savedEl = document.getElementById("saved");
+    if (savedEl) savedEl.textContent = "No se pudo guardar"; 
   }
-  
-  verificarSesion();
 }
 
-async function verificarSesion() {
+async function sincronizarASupabase(){
+  if (!sb || !usuarioLog) return;
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      usuario = session.user;
-      cargarDatos();
-      mostrarApp();
-    } else {
-      mostrarLogin();
+    // Guardar TODOS los datos como un blob JSON en tabla "app_state"
+    await sb.from('app_state').upsert({
+      user_id: usuarioLog.id,
+      data: D,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    console.log('✓ Sincronizado a Supabase');
+  } catch(e){ console.error('Error sync:', e); }
+}
+
+async function cargarDeSupabase(){
+  if (!sb || !usuarioLog) return;
+  try {
+    const { data, error } = await sb.from('app_state').select('data').eq('user_id', usuarioLog.id).single();
+    if (data && data.data) {
+      D = Object.assign(D, data.data);
+      console.log('✓ Datos cargados de Supabase');
     }
-  } catch (e) {
-    console.error('Error verificando sesión:', e);
-    mostrarLogin();
-  }
+  } catch(e){ console.error('Error carga:', e); }
 }
-
-// ============================================================================
-// LOGIN
-// ============================================================================
-function mostrarLogin() {
-  document.getElementById('navTabs').innerHTML = '';
-  document.getElementById('contenido').innerHTML = 
-    '<div class="login-form">' +
-      '<div class="card">' +
-        '<h2>🔐 Acceso</h2>' +
-        '<label>Email</label>' +
-        '<input id="email" type="email" value="manologuevara2013@icloud.com">' +
-        '<label>Contraseña</label>' +
-        '<input id="pass" type="password" value="direccion123">' +
-        '<button onclick="hacerLogin()">Ingresar</button>' +
-        '<button onclick="hacerRegistro()" style="background:#2e5e3f;margin-top:8px">Crear cuenta nueva</button>' +
-        '<div id="msgLogin" class="status"></div>' +
-      '</div>' +
-    '</div>';
-  
-  document.getElementById('footer').innerHTML = 
-    '<div style="color:#1d3a5f;font-weight:700">© 2026 Eduardo H. Guevara</div>' +
-    '<div>Colegio FASTA Juan Pablo II</div>' +
-    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.1 Supabase</div>';
+const uid = () => Math.random().toString(36).slice(2,9);
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const colorG = g => g==="grave" ? "#a34434" : g==="moderada" ? "#8a6d2f" : "#5c7350";
+const colorV = v => v==="Muy bueno" ? "#2e5e3f" : v==="Bueno" ? "#8a6d2f" : "#a34434";
+function sugerir(ll, grave, mod){
+  if (ll>=10) return "Regular";
+  if (ll>=5) return "Bueno";
+  return "Muy bueno";
 }
-
-async function hacerRegistro() {
-  const email = document.getElementById('email').value.trim();
-  const pass = document.getElementById('pass').value;
-  
-  if (!email || !pass) {
-    mostrarMsg('error', 'Ingresá email y contraseña');
-    return;
-  }
-  
-  if (pass.length < 6) {
-    mostrarMsg('error', 'La contraseña debe tener al menos 6 caracteres');
-    return;
-  }
-  
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = 'Creando cuenta...';
-  
-  try {
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
-    if (error) throw error;
-    
-    mostrarMsg('success', '✓ Cuenta creada! Ahora tocá "Ingresar"');
-  } catch (e) {
-    mostrarMsg('error', 'Error: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Crear cuenta nueva';
-  }
+const NIVELES = ["Inicial", "Primario", "Secundario"];
+const GRADOS_PRESET = {
+  "Inicial":   ["Sala de 3 años", "Sala de 4 años", "Sala de 5 años"],
+  "Primario":  ["1º grado", "2º grado", "3º grado", "4º grado", "5º grado", "6º grado", "7º grado"],
+  "Secundario":["1º año", "2º año", "3º año", "4º año", "5º año"],
+};
+function gradosDisponibles(){
+  const fuente = D.nivelActivo ? D.alumnos.filter(a => (a.nivel||"") === D.nivelActivo) : D.alumnos;
+  const gs = [...new Set(fuente.map(a=>a.grado||"Sin grado"))].sort();
+  return gs;
 }
-
-async function hacerLogin() {
-  const email = document.getElementById('email').value.trim();
-  const pass = document.getElementById('pass').value;
-  
-  if (!email || !pass) {
-    mostrarMsg('error', 'Ingresá email y contraseña');
-    return;
+function titularDe(nivel, grado){
+  const t = D.titularidades.find(x => x.nivel===nivel && x.grado===grado);
+  if(!t) return null;
+  return D.docentes.find(d=>d.id===t.docenteId) || null;
+}
+function normalizarGrado(nivel, textoGrado){
+  const t = normalizar(textoGrado);
+  if(!t) return textoGrado;
+  if(nivel==="Inicial"){
+    if(t.includes("3")) return "Sala de 3 años";
+    if(t.includes("4")) return "Sala de 4 años";
+    if(t.includes("5")) return "Sala de 5 años";
+  } else if(nivel==="Primario"){
+    const m = t.match(/([1-7])/);
+    if(m) return `${m[1]}º grado${t.match(/\b([a-d])\b/i)?" "+t.match(/\b([a-d])\b/i)[1].toUpperCase():""}`;
+  } else if(nivel==="Secundario"){
+    const m = t.match(/([1-5])/);
+    if(m) return `${m[1]}º año${t.match(/\b([a-d])\b/i)?" "+t.match(/\b([a-d])\b/i)[1].toUpperCase():""}`;
   }
-  
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = 'Ingresando...';
-  
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
-    
-    usuario = data.user;
-    cargarDatos();
-    mostrarApp();
-  } catch (e) {
-    mostrarMsg('error', 'Error: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Ingresar';
-  }
+  return textoGrado;
 }
-
-// ============================================================================
-// APP
-// ============================================================================
-async function cargarDatos() {
-  try {
-    const { data: a } = await supabase.from('alumnos').select('*').eq('activo', true);
-    const { data: d } = await supabase.from('docentes').select('*').eq('activo', true);
-    const { data: r } = await supabase.from('registros').select('*');
-    
-    alumnos = a || [];
-    docentes = d || [];
-    registros = r || [];
-    
-    console.log('✓ Datos cargados:', alumnos.length, docentes.length, registros.length);
-  } catch (e) {
-    console.error('Error cargando datos:', e);
-  }
-}
-
-function mostrarApp() {
-  document.getElementById('navTabs').innerHTML = 
-    '<button class="on" onclick="irTab(\'inicio\')" style="text-align:left;padding:8px 12px">🏠 Inicio</button>' +
-    '<button onclick="irTab(\'alumnos\')" style="text-align:left;padding:8px 12px">👥 Alumnos</button>' +
-    '<button onclick="irTab(\'docentes\')" style="text-align:left;padding:8px 12px">👨‍🏫 Docentes</button>' +
-    '<button onclick="cerrarSesion()" style="margin-left:auto;padding:8px 12px;background:#a34434;color:#fdfcf8;border:none;border-radius:3px;cursor:pointer">Salir</button>';
-  
-  document.getElementById('contenido').innerHTML = 
-    '<div class="card">' +
-      '<h2>Bienvenido</h2>' +
-      '<p>Email: <strong>' + usuario.email + '</strong></p>' +
-      '<p style="margin-top:12px;color:#8a8069">Alumnos: <strong>' + alumnos.length + '</strong><br>' +
-      'Docentes: <strong>' + docentes.length + '</strong><br>' +
-      'Registros: <strong>' + registros.length + '</strong></p>' +
-      '<div class="success msg" style="margin-top:20px">✓ Conectado a Supabase</div>' +
-    '</div>';
-  
-  document.getElementById('footer').innerHTML = 
-    '<div style="color:#1d3a5f;font-weight:700">© 2026 Eduardo H. Guevara</div>' +
-    '<div>Colegio FASTA Juan Pablo II</div>' +
-    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 Supabase · ✓ Conectado</div>';
-}
-
-function irTab(tab) {
-  const btns = document.querySelectorAll('nav button');
-  btns.forEach(b => b.classList.remove('on'));
-  event.target.classList.add('on');
-  
-  if (tab === 'inicio') mostrarInicio();
-  else if (tab === 'alumnos') mostrarAlumnos();
-  else if (tab === 'docentes') mostrarDocentes();
-}
-
-function mostrarInicio() {
-  document.getElementById('contenido').innerHTML = 
-    '<div class="card"><h2>📊 Dashboard</h2>' +
-    '<p>Alumnos: <strong>' + alumnos.length + '</strong></p>' +
-    '<p>Docentes: <strong>' + docentes.length + '</strong></p>' +
-    '<p>Registros: <strong>' + registros.length + '</strong></p>' +
-    '</div>';
-}
-
-function mostrarAlumnos() {
-  if (alumnos.length === 0) {
-    document.getElementById('contenido').innerHTML = '<div class="card"><h2>Alumnos</h2><p style="color:#8a8069">Sin datos</p></div>';
-    return;
-  }
-  
-  let html = '<div class="card"><h2>Alumnos</h2><table><thead><tr><th>Nombre</th><th>Nivel</th><th>Grado</th></tr></thead><tbody>';
-  alumnos.forEach(a => {
-    html += '<tr><td>' + a.nombre + '</td><td>' + a.nivel + '</td><td>' + a.grado + '</td></tr>';
+function opcionesGrado(nivel, valorSeleccionado){
+  const grados = GRADOS_PRESET[nivel] || [];
+  let html = `<option value="">— Elegir grado —</option>`;
+  grados.forEach(g => {
+    html += `<option value="${esc(g)}" ${valorSeleccionado===g?"selected":""}>${esc(g)}</option>`;
   });
-  html += '</tbody></table></div>';
-  document.getElementById('contenido').innerHTML = html;
+  if(valorSeleccionado && !grados.includes(valorSeleccionado)){
+    html += `<option value="${esc(valorSeleccionado)}" selected>${esc(valorSeleccionado)} (personalizado)</option>`;
+  }
+  html += `<option value="__otro__">Otro (escribir a mano)…</option>`;
+  return html;
+}
+function alumnosFiltrados(){
+  let l = D.alumnos;
+  if(D.nivelActivo) l = l.filter(a => (a.nivel||"") === D.nivelActivo);
+  if(D.gradoActivo) l = l.filter(a => (a.grado||"Sin grado") === D.gradoActivo);
+  return l;
+}
+function resumenAlumno(id){
+  const regs = D.registros.filter(r => r.alumnoId===id && r.periodo===D.periodo);
+  const llamados = regs.reduce((s,r)=>s+(r.equiv||EQUIV[r.gravedad]||1),0);
+  const firmas = regs.filter(r=>r.gravedad!=="leve").length;
+  const porAspecto = {};
+  for (const k of Object.keys(ASPECTOS)){
+    const del = regs.filter(r=>r.aspecto===k);
+    const ll = del.reduce((s,r)=>s+(r.equiv||EQUIV[r.gravedad]||1),0);
+    const g = del.some(r=>r.gravedad==="grave"), m = del.some(r=>r.gravedad==="moderada");
+    porAspecto[k] = {llamados:ll, grave:g, moderada:m, sugerida:sugerir(ll,g,m)};
+  }
+  return {regs, llamados, firmas, porAspecto, tramo: llamados>=10 ? "regular" : llamados>=5 ? "bueno" : "muybueno", afectaNota: llamados>=5};
 }
 
-function mostrarDocentes() {
-  if (docentes.length === 0) {
-    document.getElementById('contenido').innerHTML = '<div class="card"><h2>Docentes</h2><p style="color:#8a8069">Sin datos</p></div>';
-    return;
+// ── Render ──
+function render(){
+  // Panel administrativo
+  const adminPanel = document.getElementById("adminPanel");
+  if(D.adminLogged){
+    adminPanel.innerHTML = `<span style="color:#2e5e3f;font-weight:700;font-size:13px">✓ Sesión activa</span><button class="btnMin" onclick="logoutAdmin()" style="font-size:12px;background:#a34434">Salir</button>`;
+  } else {
+    adminPanel.innerHTML = `<input id="adminPass" type="password" placeholder="Clave de dirección" style="border-color:#c9b06a;background:#fdfcf8;color:#1d3a5f;font-weight:700" onkeydown="if(event.key==='Enter')loginAdmin()"><button class="btnMin" onclick="loginAdmin()" style="font-size:12px">Entrar</button>`;
   }
   
-  let html = '<div class="card"><h2>Docentes</h2><table><thead><tr><th>Nombre</th><th>Rol</th></tr></thead><tbody>';
-  docentes.forEach(d => {
-    html += '<tr><td>' + d.nombre + '</td><td>' + d.rol + '</td></tr>';
+  // año escolar
+  const sa = document.getElementById("selAno");
+  const anosDisp = [...new Set([...D.registros.map(r => r.anoEscolar || "2026"), ...D.reconocimientos.map(r => r.anoEscolar || "2026"), "2024", "2025", "2026", "2027"])].sort().reverse();
+  sa.innerHTML = anosDisp.map(a => `<option value="${a}" ${a===D.anoEscolar?"selected":""}>${a}</option>`).join("");
+  sa.addEventListener("change", e => { D.anoEscolar=e.target.value; guardar(); render(); });
+  const sd = document.getElementById("selDocente");
+  sd.innerHTML = `<option value="">— Elegir docente —</option>` +
+    D.docentes.map(d=>`<option value="${d.id}" ${d.id===D.docenteActivo?"selected":""}>${esc(d.nombre)}</option>`).join("");
+  // nivel
+  const sn = document.getElementById("selNivel");
+  const nivelesUsados = [...new Set(D.alumnos.map(a=>a.nivel||""))].filter(Boolean);
+  sn.innerHTML = `<option value="">Todos los niveles</option>` + NIVELES.map(n=>`<option value="${n}" ${n===D.nivelActivo?"selected":""}>${n}${nivelesUsados.includes(n)?"":" (sin alumnos)"}</option>`).join("");
+  // grado
+  const sg = document.getElementById("selGrado");
+  const grs = gradosDisponibles();
+  sg.innerHTML = `<option value="">Todos los grados${D.nivelActivo?` de ${D.nivelActivo}`:""}</option>` + grs.map(g=>`<option value="${esc(g)}" ${g===D.gradoActivo?"selected":""}>${esc(g)}</option>`).join("");
+  // pestañas
+  const tabs = [
+    ["rapido","⚡ Modo rápido"],
+    ["registro","Registrar llamado"],
+    ["reconocer","🌱 Reconocer virtud"],
+    ["grilla","Grilla del curso"],
+    ["gei","Informe GEI (curso)"],
+    ["informe","Informe por alumno"],
+    ["alumnos","Alumnos"],
+    ["personal","Personal docente"],
+    ["guia","Guía del AEC"],
+    ["respaldo","Respaldo"],
+  ];
+  document.getElementById("tabs").innerHTML = tabs.map(([id,n])=>`<button class="${tab===id?"on":""}" onclick="irTab('${id}')">${n}</button>`).join("");
+  const M = document.getElementById("main");
+  if (tab==="rapido") M.innerHTML = vRapido();
+  else if (tab==="reconocer") M.innerHTML = vReconocer();
+  else if (tab==="personal") M.innerHTML = vPersonal();
+  else if (tab==="alumnos") M.innerHTML = vAlumnos();
+  else if (tab==="registro") M.innerHTML = vRegistro();
+  else if (tab==="grilla") M.innerHTML = vGrilla();
+  else if (tab==="gei") M.innerHTML = vGEI();
+  else if (tab==="informe") M.innerHTML = vInforme();
+  else if (tab==="guia") M.innerHTML = vGuia();
+  else M.innerHTML = vRespaldo();
+}
+window.irTab = t => { tab=t; render(); };
+document.getElementById("selDocente").addEventListener("change", e => { D.docenteActivo=e.target.value; guardar(); render(); });
+document.getElementById("selPeriodo").addEventListener("change", e => { D.periodo=e.target.value; guardar(); render(); });
+document.getElementById("selNivel").addEventListener("change", e => { D.nivelActivo=e.target.value; D.gradoActivo=""; guardar(); render(); });
+document.getElementById("selGrado").addEventListener("change", e => { D.gradoActivo=e.target.value; guardar(); render(); });
+
+// ── Reconocer virtud (Proyecto Sembrando Virtudes) ──
+let formRecon = { alumnoId:"", virtudId:"", ejemplo:"", detalle:"", fecha: new Date().toISOString().slice(0,10), clase:"", ok:"" };
+let notaImprimirId = null;
+
+function nombreDocente(idOrObj){
+  if(typeof idOrObj === "object") return idOrObj.docenteNombre || (D.docentes.find(d=>d.id===idOrObj.docenteId)?.nombre) || "";
+  return D.docentes.find(d=>d.id===idOrObj)?.nombre || "";
+}
+
+function vReconocer(){
+  const listaAlumnos = alumnosFiltrados();
+  const virtud = VIRTUDES.find(v=>v.id===formRecon.virtudId);
+  const docenteActual = D.docentes.find(d=>d.id===D.docenteActivo);
+
+  const avisoDocente = !docenteActual
+    ? `<div class="aviso rojo" style="margin-bottom:12px">Elegí primero el <b>docente que registra</b> en el selector de arriba, o cargá docentes en la pestaña «Personal docente».</div>`
+    : `<div class="aviso" style="margin-bottom:12px">Registrando como: <b>${esc(docenteActual.nombre)}</b>${docenteActual.rol?` · ${esc(docenteActual.rol)}`:""}</div>`;
+
+  return `<section class="card"><h2>🌱 Reconocer una virtud · Proyecto Sembrando Virtudes</h2>
+    <p style="font-size:14px;color:#5a5346;margin-top:0;font-style:italic">"Educar no consiste solo en corregir, sino también en reconocer y potenciar lo mejor de cada persona."</p>
+    ${avisoDocente}
+
+    <div class="grid2">
+      <div><label class="lbl">Alumno${D.gradoActivo?` · ${esc(D.gradoActivo)}`:""}</label>
+        <select style="width:100%" onchange="formRecon.alumnoId=this.value;render()">
+          <option value="">Elegir alumno…</option>
+          ${listaAlumnos.map(a=>`<option value="${a.id}" ${formRecon.alumnoId===a.id?"selected":""}>${esc(a.nombre)}${a.grado&&!D.gradoActivo?` — ${esc(a.grado)}`:""}</option>`).join("")}
+        </select></div>
+      <div><label class="lbl">Fecha</label>
+        <input type="date" value="${formRecon.fecha}" onchange="formRecon.fecha=this.value"></div>
+    </div>
+
+    <label class="lbl">Virtud a reconocer</label>
+    <div class="chips" style="margin-bottom:8px">
+      ${VIRTUDES.map(v=>`<button class="chip ${formRecon.virtudId===v.id?"chipOn":""}" style="${formRecon.virtudId===v.id?`background:${v.color};border-color:${v.color}`:`border-color:${v.color};color:${v.color}`}" onclick="formRecon.virtudId='${v.id}';formRecon.ejemplo='';render()">${esc(v.nombre)}</button>`).join("")}
+    </div>
+
+    ${virtud ? `
+      <div class="panel" style="border-left:4px solid ${virtud.color};background:#fff">
+        <b style="color:${virtud.color}">Ejemplos de ${esc(virtud.nombre)}:</b>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+          ${virtud.ejemplos.map((ej,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer">
+            <input type="radio" name="ejemplo" value="${esc(ej)}" ${formRecon.ejemplo===ej?"checked":""} onchange="formRecon.ejemplo=this.value;render()" style="margin-top:4px">
+            <span>${esc(ej)}</span>
+          </label>`).join("")}
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer;color:#5a5346">
+            <input type="radio" name="ejemplo" value="" ${!formRecon.ejemplo?"checked":""} onchange="formRecon.ejemplo=this.value;render()" style="margin-top:4px">
+            <span><i>Otro (describir en el detalle)</i></span>
+          </label>
+        </div>
+      </div>
+
+      <label class="lbl">Detalle del reconocimiento (dos líneas · conducta observada concreta)</label>
+      <textarea rows="3" style="width:100%" placeholder="Describí concretamente la conducta observada, evitando elogios genéricos. Ej.: «Ofreció ayudar a un compañero que tenía dificultades con la actividad de matemática».
+        " onchange="formRecon.detalle=this.value">${esc(formRecon.detalle)}</textarea>
+
+      <label class="lbl">Durante la clase / actividad (opcional)</label>
+      <input value="${esc(formRecon.clase)}" placeholder="Ej.: Matemática, Educación Física, recreo" onchange="formRecon.clase=this.value" style="width:100%">
+
+      <button class="btn" style="margin-top:14px" ${(!formRecon.alumnoId||!docenteActual)?"disabled":""} onclick="registrarReconocimiento()">🌱 Registrar reconocimiento</button>
+    ` : "<p class='vacio'>Elegí una virtud para ver los ejemplos y completar el reconocimiento.</p>"}
+
+    ${formRecon.ok?`<div class="aviso" style="margin-top:10px">${formRecon.ok}</div>`:""}
+  </section>`;
+}
+
+window.registrarReconocimiento = () => {
+  const v = VIRTUDES.find(x=>x.id===formRecon.virtudId);
+  const al = D.alumnos.find(x=>x.id===formRecon.alumnoId);
+  const doc = D.docentes.find(d=>d.id===D.docenteActivo);
+  if(!v || !al || !doc) return;
+  const nuevo = {
+    id: uid(), alumnoId: al.id, virtudId: v.id, virtudNombre: v.nombre,
+    ejemplo: formRecon.ejemplo, detalle: formRecon.detalle.trim(),
+    clase: formRecon.clase.trim(), fecha: formRecon.fecha, periodo: D.periodo, anoEscolar: D.anoEscolar,
+    docenteId: doc.id, docenteNombre: doc.nombre, docenteRol: doc.rol || "",
+  };
+  D.reconocimientos.push(nuevo);
+  formRecon.ok = `✓ Reconocimiento registrado a <b>${esc(al.nombre)}</b> por su ${v.nombre.toLowerCase()}. <button class="btnMin" style="margin-left:8px" onclick="imprimirNota('${nuevo.id}')">📄 Imprimir nota para la familia</button>`;
+  formRecon.virtudId=""; formRecon.ejemplo=""; formRecon.detalle=""; formRecon.clase="";
+  guardar(); render();
+};
+
+window.imprimirNota = (reconId) => {
+  const r = D.reconocimientos.find(x=>x.id===reconId);
+  if(!r) return;
+  const al = D.alumnos.find(a=>a.id===r.alumnoId);
+  const v = VIRTUDES.find(vx=>vx.id===r.virtudId);
+  const fecha = r.fecha.split("-").reverse().join(" / ");
+  const w = window.open("", "_blank");
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Reconocimiento — ${esc(al?.nombre||"")}</title>
+    <style>
+      body { font-family: 'Iowan Old Style','Palatino Linotype',Georgia,serif; margin:0; padding:40px; background:#fff; color:#2b2519; }
+      .nota { max-width:720px; margin:0 auto; border:3px double ${v?.color||"#c9b06a"}; padding:36px 40px; position:relative; background:#fdfcf8; }
+      .nota::before, .nota::after { content:"❦"; position:absolute; font-size:28px; color:${v?.color||"#c9b06a"}; }
+      .nota::before { top:8px; left:16px; }
+      .nota::after { top:8px; right:16px; }
+      .escudo { text-align:center; font-size:32px; color:#1d3a5f; margin-bottom:12px; }
+      .titulo { text-align:center; font-size:18px; letter-spacing:3px; color:${v?.color||"#8a6d2f"}; text-transform:uppercase; font-weight:700; margin-bottom:20px; }
+      p { font-size:16px; line-height:1.7; margin:10px 0; }
+      .destacada { font-weight:700; color:${v?.color||"#8a6d2f"}; }
+      .cierre { text-align:center; font-style:italic; font-size:15px; color:#5a5346; margin-top:24px; border-top:1px solid #e0d8c3; padding-top:16px; }
+      .firma { display:flex; justify-content:space-between; margin-top:36px; font-size:14px; }
+      .firma div { flex:1; text-align:center; border-top:1px solid #2b2519; padding-top:4px; margin:0 20px; }
+      .pie { text-align:center; font-size:12px; color:#8a8069; font-style:italic; margin-top:20px; letter-spacing:1px; }
+      @media print { body { padding:20px; } .noprint { display:none; } }
+      .noprint { text-align:center; margin-top:20px; }
+      button { padding:10px 20px; background:#1d3a5f; color:#fff; border:none; border-radius:3px; font-size:15px; cursor:pointer; }
+    </style></head>
+    <body><div class="nota">
+      <div class="escudo">✦ Colegio FASTA Juan Pablo II ✦</div>
+      <div class="titulo">Reconocemos una virtud · Sembrando Virtudes</div>
+      <p>Reconocemos a <span class="destacada">${esc(al?.nombre||"")}</span>${r.clase?` por haber demostrado, durante la clase de <span class="destacada">${esc(r.clase)}</span>,`:" por haber demostrado"} una valiosa actitud de <span class="destacada">${esc(v?.nombre||r.virtudNombre)}</span>.</p>
+      ${r.detalle?`<p style="background:#f7f4ec;padding:14px 18px;border-left:3px solid ${v?.color||"#c9b06a"};font-style:italic">"${esc(r.detalle)}"</p>`:r.ejemplo?`<p style="background:#f7f4ec;padding:14px 18px;border-left:3px solid ${v?.color||"#c9b06a"};font-style:italic">"${esc(r.ejemplo)}"</p>`:""}
+      <p class="cierre">Este reconocimiento busca valorar las buenas acciones y actitudes que contribuyen al crecimiento personal y grupal. Cuando el bien se hace visible, inspira a otros y fortalece nuestra comunidad educativa. ¡Felicitaciones! Agradecemos tu compromiso e invitamos a seguir siendo ejemplo para los demás.</p>
+      <div class="firma">
+        <div>${esc(r.docenteNombre||"")}<br><small>Docente${r.docenteRol?" · "+esc(r.docenteRol):""}</small></div>
+        <div>Fecha: ${fecha}</div>
+        <div>Firma de la familia</div>
+      </div>
+      <div class="pie">Educamos en la verdad y el bien</div>
+    </div>
+    <div class="noprint"><button onclick="window.print()">🖨 Imprimir esta nota</button></div>
+    </body></html>`);
+  w.document.close();
+};
+
+// ── Modo rápido (pensado para el celular en el aula) ──
+let rapidoAlumno = "";
+let rapidoFalta = "";
+
+function ultimosAlumnos(n){
+  const ids = [];
+  for (let i = D.registros.length - 1; i >= 0 && ids.length < n; i--) {
+    if (!ids.includes(D.registros[i].alumnoId)) ids.push(D.registros[i].alumnoId);
+  }
+  return ids.map(id => D.alumnos.find(a=>a.id===id)).filter(Boolean);
+}
+function faltasFrecuentes(n){
+  const conteo = {};
+  D.registros.forEach(r => conteo[r.faltaId] = (conteo[r.faltaId]||0) + 1);
+  const ids = Object.keys(conteo).sort((a,b)=>conteo[b]-conteo[a]).slice(0,n);
+  return ids.map(id => CATALOGO.find(f=>f.id===id)).filter(Boolean);
+}
+
+function vRapido(){
+  const listaAlumnos = alumnosFiltrados();
+  const docenteActual = D.docentes.find(d=>d.id===D.docenteActivo);
+  const avisoDoc = !docenteActual
+    ? `<div class="aviso rojo" style="margin-bottom:12px">⚠ Elegí primero tu nombre en el selector <b>«Docente que registra»</b> arriba, para que quede constancia de quién carga.</div>`
+    : `<div style="background:#eef2ec;border:1px solid #5c7350;padding:6px 12px;border-radius:3px;font-size:13px;margin-bottom:10px">Registrando como <b>${esc(docenteActual.nombre)}</b></div>`;
+
+  if (listaAlumnos.length === 0) {
+    return `<section class="card"><h2>⚡ Modo rápido</h2>
+      ${avisoDoc}
+      <p class="vacio">${D.alumnos.length===0 ? "Primero cargá la lista del curso en la pestaña «Alumnos» (podés importar un Excel)." : `No hay alumnos en el grado «${esc(D.gradoActivo)}». Cambiá el grado activo arriba o cargá alumnos en ese grado.`}</p></section>`;
+  }
+  const pN = PERIODOS.find(p=>p.id===D.periodo).nombre;
+  const recientes = ultimosAlumnos(6).filter(a => listaAlumnos.includes(a));
+  const frecuentes = faltasFrecuentes(6);
+
+  // Paso 1: elegir alumno
+  const chipsAlumnos = recientes.length
+    ? `<div style="margin-bottom:10px"><div class="lbl" style="margin-top:0">Recientes</div>
+        <div class="chips">${recientes.map(a=>`<button class="chip ${rapidoAlumno===a.id?"chipOn":""}" onclick="rapidoAlumno='${a.id}';render()">${esc(a.nombre.split(",")[0])}</button>`).join("")}</div></div>`
+    : "";
+  const alumnoSel = `<label class="lbl">${D.gradoActivo?`Alumnos de ${esc(D.gradoActivo)}`:"Todos los alumnos"}</label>
+    <select class="inpBig" onchange="rapidoAlumno=this.value;render()">
+      <option value="">Elegir alumno…</option>
+      ${listaAlumnos.map(a=>`<option value="${a.id}" ${rapidoAlumno===a.id?"selected":""}>${esc(a.nombre)}${a.grado&&!D.gradoActivo?` — ${esc(a.grado)}`:""}</option>`).join("")}
+    </select>`;
+
+  if (!rapidoAlumno) {
+    return `<section class="card"><h2>⚡ Modo rápido · ${pN}</h2>
+      ${avisoDoc}
+      <div class="pasoInd">Paso 1 de 2</div>
+      <h3 style="font-size:16px;color:#1d3a5f;margin:4px 0 12px">¿A qué alumno le registrás el llamado?</h3>
+      ${chipsAlumnos}${alumnoSel}
+      <div style="margin-top:20px;padding-top:14px;border-top:1px dashed #c9b06a;text-align:center">
+        <button class="btnMin" style="padding:10px 20px;font-size:14px" onclick="irTab('reconocer')">🌱 O reconocer una virtud →</button>
+      </div>
+      ${rapidoOk?`<div class="aviso" style="margin-top:16px">${rapidoOk}</div>`:""}
+    </section>`;
+  }
+
+  // Paso 2: elegir falta
+  const al = D.alumnos.find(a=>a.id===rapidoAlumno);
+  const r = resumenAlumno(al.id);
+  const chipsFaltas = frecuentes.length
+    ? `<div style="margin-bottom:12px"><div class="lbl" style="margin-top:0">Frecuentes</div>
+        <div class="chips">${frecuentes.map(f=>`<button class="chip chipFalta" style="border-left:4px solid ${colorG(f.gravedad)}" onclick="rapidoFalta='${f.id}';render()">${esc(f.texto)}</button>`).join("")}</div></div>`
+    : "";
+
+  const catsUnicas = [...new Set(CATALOGO.map(f=>f.cat))];
+  const faltaSel = `<label class="lbl">Todas las faltas del AEC</label>
+    <select class="inpBig" onchange="rapidoFalta=this.value;render()">
+      <option value="">Elegir la falta…</option>
+      ${catsUnicas.map(c=>`<optgroup label="${esc(c)}">${CATALOGO.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${rapidoFalta===f.id?"selected":""}>${esc(f.texto)} — ${f.gravedad.toUpperCase()}</option>`).join("")}</optgroup>`).join("")}
+    </select>`;
+
+  const falta = CATALOGO.find(f=>f.id===rapidoFalta);
+  let confirmar = "";
+  if (falta) {
+    const equiv = EQUIV[falta.gravedad];
+    confirmar = `<div class="panel" style="border-left:4px solid ${colorG(falta.gravedad)};margin-top:16px">
+      <span class="badge" style="background:${colorG(falta.gravedad)}">Falta ${falta.gravedad}</span>
+      <span class="badge" style="background:#1d3a5f">${ASPECTOS[falta.aspecto].nombre}</span>
+      <div style="margin-top:6px;font-size:14.5px">${esc(falta.texto)}</div>
+      <div style="margin-top:4px;font-size:13px;color:#5a5346">Equivale a ${equiv} llamado${equiv>1?"s":""} de atención${falta.gravedad!=="leve"?" · Firma en libro de disciplina + aviso a Dirección":""}</div>
+    </div>
+    <button class="btn btnBig" onclick="registrarRapido()">✓ Registrar llamado</button>`;
+  }
+
+  return `<section class="card"><h2>⚡ Modo rápido · ${pN}</h2>
+    <div class="pasoInd">Paso 2 de 2</div>
+    <div style="background:#1d3a5f;color:#fdfcf8;padding:10px 14px;border-radius:3px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><b>${esc(al.nombre)}</b><div style="font-size:12.5px;color:#c9b06a">${r.llamados} llamado${r.llamados===1?"":"s"} · ${r.tramo==="regular"?"REGULAR":r.tramo==="bueno"?"BUENO":"MUY BUENO"}</div></div>
+      <button class="chip" style="background:#fdfcf8;color:#1d3a5f" onclick="rapidoAlumno='';rapidoFalta='';render()">Cambiar alumno</button>
+    </div>
+    <h3 style="font-size:16px;color:#1d3a5f;margin:4px 0 12px">¿Qué falta al AEC observaste?</h3>
+    ${chipsFaltas}${faltaSel}${confirmar}
+  </section>`;
+}
+
+window.registrarRapido = () => {
+  const falta = CATALOGO.find(f=>f.id===rapidoFalta);
+  const al = D.alumnos.find(a=>a.id===rapidoAlumno);
+  const doc = D.docentes.find(d=>d.id===D.docenteActivo);
+  if(!falta || !al) return;
+  const equiv = EQUIV[falta.gravedad];
+  D.registros.push({id:uid(), alumnoId:al.id, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
+    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:new Date().toISOString().slice(0,10),
+    periodo:D.periodo, anoEscolar:D.anoEscolar, obs:"", reparadora:"", firmaLibro:falta.gravedad!=="leve",
+    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
+  guardar();
+  rapidoOk = `✓ Registrado para <b>${esc(al.nombre)}</b>${doc?` por ${esc(doc.nombre)}`:""}: ${esc(falta.texto)}. ` + (falta.gravedad!=="leve" ? "Recordá firma en libro de disciplina y aviso a Dirección." : "");
+  rapidoAlumno = ""; rapidoFalta = "";
+  render();
+  setTimeout(()=>{ rapidoOk=""; if(tab==="rapido") render(); }, 5000);
+};
+
+// ── Personal docente ──
+function vPersonal(){
+  const lista = D.docentes.length
+    ? "<div style='overflow-x:auto'><table><thead><tr><th>Docente</th><th>Rol / materia</th><th>Registros</th><th></th></tr></thead><tbody>" +
+      [...D.docentes].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(d=>{
+        const nLlamados = D.registros.filter(r=>r.docenteId===d.id).length;
+        const nRecon = D.reconocimientos.filter(r=>r.docenteId===d.id).length;
+        const titulados = D.titularidades.filter(t=>t.docenteId===d.id);
+        return `<tr>
+          <td>${esc(d.nombre)}${titulados.length?`<div style="font-size:12px;color:#2e5e3f;margin-top:2px">Titular: ${titulados.map(t=>esc(t.grado)).join(", ")}</div>`:""}</td>
+          <td><input value="${esc(d.rol||"")}" placeholder="Ej.: Maestra 4º grado, Ed. Física, Directora" onchange="D.docentes.find(x=>x.id==='${d.id}').rol=this.value.trim();guardar()"></td>
+          <td style="font-size:13px">${nLlamados} llamados · ${nRecon} recon.</td>
+          <td><button class="btnMin" onclick="quitarDocente('${d.id}')">Quitar</button></td>
+        </tr>`;
+      }).join("") + "</tbody></table></div>"
+    : "<p class='vacio'>Todavía no hay docentes cargados. Usá alguno de los métodos de arriba.</p>";
+
+  // Titularidades por grado
+  const gradosConAlumnos = [];
+  D.alumnos.forEach(a => {
+    if(a.nivel && a.grado){
+      const clave = `${a.nivel}|${a.grado}`;
+      if(!gradosConAlumnos.some(g=>g.clave===clave)) gradosConAlumnos.push({clave, nivel:a.nivel, grado:a.grado});
+    }
   });
-  html += '</tbody></table></div>';
-  document.getElementById('contenido').innerHTML = html;
+  gradosConAlumnos.sort((a,b)=>a.clave.localeCompare(b.clave));
+
+  const seccionTitulares = gradosConAlumnos.length === 0
+    ? "<p class='vacio'>Primero cargá alumnos con nivel y grado para poder asignar docentes titulares.</p>"
+    : `<div style='overflow-x:auto'><table><thead><tr><th>Nivel</th><th>Grado</th><th>Alumnos</th><th>Docente titular</th></tr></thead><tbody>
+      ${gradosConAlumnos.map(g=>{
+        const t = D.titularidades.find(x=>x.nivel===g.nivel && x.grado===g.grado);
+        const cant = D.alumnos.filter(a=>a.nivel===g.nivel && a.grado===g.grado).length;
+        return `<tr>
+          <td>${esc(g.nivel)}</td>
+          <td><b>${esc(g.grado)}</b></td>
+          <td style="text-align:center">${cant}</td>
+          <td><select onchange="asignarTitular('${esc(g.nivel)}','${esc(g.grado)}',this.value)" style="min-width:220px">
+            <option value="">— Sin titular asignado —</option>
+            ${D.docentes.map(d=>`<option value="${d.id}" ${t && t.docenteId===d.id?"selected":""}>${esc(d.nombre)}</option>`).join("")}
+          </select></td>
+        </tr>`;
+      }).join("")}
+    </tbody></table></div>`;
+
+  return `<section class="card"><h2>Personal docente</h2>
+    <p style="font-size:14px;color:#5a5346;margin-top:0">Cargá aquí a todos los docentes y directivos que van a usar la app. Cualquier docente cargado puede registrar llamados o reconocimientos sobre cualquier alumno — solo tiene que elegir su nombre en el selector «Docente que registra» de arriba antes de cada carga.</p>
+
+    <!-- MÉTODO 1: EXCEL -->
+    <div class="panel" style="border-left:4px solid #5c7350;background:#f0f5ec">
+      <b style="color:#1d3a5f;font-size:15px">📊 Método 1 · Importar el listado de docentes desde Excel</b>
+      <p style="font-size:13.5px;margin:6px 0 10px">Cargá una planilla con los docentes de la escuela.</p>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">📂 Elegir archivo Excel de docentes…
+        <input type="file" accept=".xlsx,.xls,.csv" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importarDocentes(this)"></label>
+
+      <details style="margin-top:10px;font-size:13px;color:#5a5346">
+        <summary style="cursor:pointer;color:#1d3a5f">¿Cómo tiene que estar armado el Excel?</summary>
+        <p style="margin:8px 0 4px">Una planilla simple con los nombres de los docentes. Se reconocen estos formatos:</p>
+        <ul style="margin:4px 0;padding-left:20px">
+          <li>Una columna «Apellido y Nombre» (o «Nombre completo»)</li>
+          <li>Dos columnas: «Apellido» + «Nombre» separadas</li>
+          <li>Columna adicional opcional: «Rol», «Cargo» o «Materia»</li>
+        </ul>
+        <button class="btnMin" style="margin-top:6px" onclick="descargarPlantillaDocentes()">📥 Descargar plantilla modelo</button>
+      </details>
+    </div>
+
+    <!-- MÉTODO 2: MANUAL -->
+    <div class="panel">
+      <b style="color:#1d3a5f;font-size:15px">✍ Método 2 · Agregar docentes manualmente</b>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="lbl">Apellido, Nombre</label>
+          <input id="inDocNombre" placeholder="Fernández, María" onkeydown="if(event.key==='Enter')agregarDocente()"></div>
+        <div><label class="lbl">Rol / materia (opcional)</label>
+          <input id="inDocRol" placeholder="Ej.: Maestra 4º grado, Ed. Física" onkeydown="if(event.key==='Enter')agregarDocente()"></div>
+      </div>
+      <button class="btn" style="margin-top:8px" onclick="agregarDocente()">Agregar docente</button>
+
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:#1d3a5f;font-size:13.5px">Pegar lista completa de docentes</summary>
+        <p style="font-size:13px;color:#5a5346;margin:6px 0">Un docente por línea. Podés incluir el rol separado con un guión.</p>
+        <textarea id="inDocMasivo" rows="6" style="width:100%;margin-top:4px" placeholder="Fernández, María — Maestra 4º grado&#10;Gómez, Pablo — Ed. Física&#10;López, Ana — Directora&#10;…"></textarea>
+        <button class="btn" style="margin-top:8px" onclick="agregarDocentesLista()">Agregar todos</button>
+      </details>
+    </div>
+
+    <!-- LISTA ACTUAL -->
+    <h2 style="margin-top:24px">Docentes cargados (${D.docentes.length})</h2>
+    ${lista}
+
+    <!-- TITULARIDADES -->
+    <h2 style="margin-top:24px">Docentes titulares por grado <span style="font-size:13px;font-weight:400;color:#5a5346">(dato informativo)</span></h2>
+    <p style="font-size:14px;color:#5a5346;margin-top:0">Podés indicar quién es el maestro/a titular de cada grado. Aparecerá en el informe individual del alumno. No limita quién puede cargar registros: cualquier docente puede hacerlo.</p>
+    ${seccionTitulares}
+  </section>`;
 }
 
-async function cerrarSesion() {
-  await supabase.auth.signOut();
-  usuario = null;
-  mostrarLogin();
+window.descargarPlantillaDocentes = () => {
+  const wb = XLSX.utils.book_new();
+  const datos = [
+    ["Apellido y Nombre", "Rol"],
+    ["Fernández, María", "Maestra 4º grado"],
+    ["Gómez, Pablo", "Ed. Física"],
+    ["López, Ana", "Directora"],
+    ["Martínez, Sofía", "Maestra 1º grado"],
+    ["Rodríguez, Juan", "Catequesis"],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(datos);
+  ws["!cols"] = [{wch:30},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, ws, "Docentes");
+  XLSX.writeFile(wb, "plantilla_docentes.xlsx");
+};
+
+window.asignarTitular = (nivel, grado, docenteId) => {
+  D.titularidades = D.titularidades.filter(t => !(t.nivel===nivel && t.grado===grado));
+  if(docenteId) D.titularidades.push({id:uid(), nivel, grado, docenteId});
+  guardar(); render();
+};
+
+window.agregarDocente = () => {
+  const n = document.getElementById("inDocNombre").value.trim();
+  const r = document.getElementById("inDocRol").value.trim();
+  if(!n) return;
+  D.docentes.push({id:uid(),nombre:n,rol:r}); guardar(); render();
+};
+window.agregarDocentesLista = () => {
+  const lineas = document.getElementById("inDocMasivo").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const nuevos = lineas.map(l => {
+    const partes = l.split(/\s+[—–-]\s+/);
+    return {id:uid(), nombre:partes[0].trim(), rol:(partes[1]||"").trim()};
+  });
+  if(!nuevos.length) return;
+  D.docentes.push(...nuevos); guardar(); render();
+};
+window.quitarDocente = id => {
+  const nLl = D.registros.filter(r=>r.docenteId===id).length;
+  const nRe = D.reconocimientos.filter(r=>r.docenteId===id).length;
+  if((nLl+nRe)>0 && !confirm(`Este docente tiene ${nLl+nRe} registros asociados. Al quitarlo, los registros conservan el nombre como texto. ¿Continuar?`)) return;
+  if((nLl+nRe)===0 && !confirm("¿Quitar este docente?")) return;
+  // Reemplazar referencias con el nombre como texto
+  const doc = D.docentes.find(x=>x.id===id);
+  const nombre = doc ? doc.nombre : "(docente removido)";
+  D.registros.forEach(r => { if(r.docenteId===id){ r.docenteId=""; r.docenteNombre=nombre; }});
+  D.reconocimientos.forEach(r => { if(r.docenteId===id){ r.docenteId=""; r.docenteNombre=nombre; }});
+  D.docentes = D.docentes.filter(d=>d.id!==id);
+  if(D.docenteActivo===id) D.docenteActivo="";
+  guardar(); render();
+};
+
+window.importarDocentes = (input) => {
+  const f = input.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:"array"});
+      let nuevos = 0, dup = 0;
+      wb.SheetNames.forEach(nombreHoja => {
+        const ws = wb.Sheets[nombreHoja];
+        const filas = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if(filas.length < 2) return;
+        let idxEnc = 0;
+        for(let i=0;i<Math.min(5,filas.length);i++){
+          const f = filas[i].map(normalizar);
+          if(f.some(c => ["nombre","apellido","docente"].includes(c))){ idxEnc = i; break; }
+        }
+        const headers = filas[idxEnc];
+        const iNombreCompleto = detectarColumna(headers, ["apellido y nombre","apellido, nombre","nombre completo","docente","docentes"]);
+        const iApellido = detectarColumna(headers, ["apellido"]);
+        const iNombre = detectarColumna(headers, ["nombre","nombres"]);
+        const iRol = detectarColumna(headers, ["rol","cargo","materia","funcion","función","area","área"]);
+        const usarPrimera = iNombreCompleto===-1 && iApellido===-1 && iNombre===-1;
+        for(let i=idxEnc+1;i<filas.length;i++){
+          const fila = filas[i];
+          if(!fila || fila.every(c=>String(c).trim()==="")) continue;
+          let nombre = "";
+          if(iNombreCompleto>=0) nombre = String(fila[iNombreCompleto]||"").trim();
+          else if(iApellido>=0 && iNombre>=0) nombre = `${String(fila[iApellido]||"").trim()}, ${String(fila[iNombre]||"").trim()}`.replace(/^,\s*|,\s*$/,"").trim();
+          else if(iApellido>=0) nombre = String(fila[iApellido]||"").trim();
+          else if(iNombre>=0) nombre = String(fila[iNombre]||"").trim();
+          else if(usarPrimera) nombre = String(fila[0]||"").trim();
+          if(!nombre || nombre.length<2) continue;
+          const rol = iRol>=0 ? String(fila[iRol]||"").trim() : "";
+          if(D.docentes.some(d => normalizar(d.nombre)===normalizar(nombre))){ dup++; continue; }
+          D.docentes.push({id:uid(), nombre, rol}); nuevos++;
+        }
+      });
+      if(nuevos===0 && dup===0) alert("No se encontraron docentes en la planilla.");
+      else { guardar(); render(); alert(`✓ Importación completa\nDocentes nuevos: ${nuevos}${dup?`\nYa existían: ${dup}`:""}`); }
+    } catch(err){ alert("No se pudo leer la planilla: " + err.message); }
+    input.value = "";
+  };
+  fr.readAsArrayBuffer(f);
+};
+
+// ── Alumnos ──
+function vAlumnos(){
+  // Agrupamiento actual por Nivel > Grado
+  const grupos = {};
+  D.alumnos.forEach(a => {
+    const niv = a.nivel || "Sin nivel";
+    const gr = a.grado || "Sin grado";
+    if(!grupos[niv]) grupos[niv] = {};
+    if(!grupos[niv][gr]) grupos[niv][gr] = [];
+    grupos[niv][gr].push(a);
+  });
+
+  const listaAgrupada = D.alumnos.length === 0
+    ? "<p class='vacio'>Todavía no hay alumnos cargados. Usá alguno de los métodos de arriba para empezar.</p>"
+    : Object.keys(grupos).sort().map(niv => {
+        return Object.keys(grupos[niv]).sort().map(gr => {
+          const alu = grupos[niv][gr].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+          const t = titularDe(niv, gr);
+          return `<div style="margin-top:16px">
+            <div style="background:#1d3a5f;color:#fdfcf8;padding:8px 14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">
+              <div><b>${esc(niv)} · ${esc(gr)}</b> <span style="color:#c9b06a">(${alu.length} alumnos)</span></div>
+              <div style="font-size:13px;color:#c9b06a">${t?`Titular: ${esc(t.nombre)}`:"<i>Sin titular asignado</i>"}</div>
+            </div>
+            <table><tbody>
+              ${alu.map(a=>`<tr>
+                <td>${esc(a.nombre)}</td>
+                <td style="text-align:right;width:160px"><button class="btnMin" onclick="trasladarAlumno('${a.id}')">📍 Trasladar</button> <button class="btnMin" onclick="editarAlumno('${a.id}')">Editar</button> <button class="btnMin" onclick="quitarAlumno('${a.id}')">Quitar</button></td>
+              </tr>`).join("")}
+            </tbody></table>
+          </div>`;
+        }).join("");
+      }).join("");
+
+  return `<section class="card"><h2>Alumnos</h2>
+    <p style="font-size:14px;color:#5a5346;margin-top:0">Cargá los alumnos de a un grado por vez. Podés hacerlo importando la lista del grado desde Excel (más rápido), o agregándolos manualmente uno por uno.</p>
+
+    <!-- MÉTODO 1: IMPORTAR EXCEL POR GRADO -->
+    <div class="panel" style="border-left:4px solid #5c7350;background:#f0f5ec">
+      <b style="color:#1d3a5f;font-size:15px">📊 Método 1 · Importar el listado de un grado desde Excel</b>
+      <p style="font-size:13.5px;margin:6px 0 12px">Elegí el nivel, el grado, el docente titular (opcional) y cargá el Excel del grado. El archivo solo necesita tener los nombres de los alumnos — no hacen falta más columnas.</p>
+
+      <div class="grid2">
+        <div><label class="lbl">1. Nivel</label>
+          <select id="impNivel" onchange="onCambiarNivel('impGrado', this.value)">
+            <option value="">— Elegir nivel —</option>
+            ${NIVELES.map(n=>`<option value="${n}">${n}</option>`).join("")}
+          </select></div>
+        <div><label class="lbl">2. Grado</label>
+          <select id="impGrado" onchange="onSelectGrado(this)">
+            <option value="">— Primero elegí el nivel —</option>
+          </select></div>
+      </div>
+      <label class="lbl">3. Docente titular del grado (opcional)</label>
+      <select id="impTitular" style="width:100%">
+        <option value="">— Sin titular / asignar después —</option>
+        ${D.docentes.map(d=>`<option value="${d.id}">${esc(d.nombre)}${d.rol?` — ${esc(d.rol)}`:""}</option>`).join("")}
+      </select>
+      <p style="font-size:12.5px;color:#5a5346;margin:4px 0 12px">Si el docente titular no está en la lista, primero cargalo en la pestaña «Personal docente» y volvé aquí, o dejalo en «Sin titular» y asignalo más tarde.</p>
+
+      <label class="lbl">4. Archivo Excel del grado</label>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">📂 Elegir archivo Excel del grado…
+        <input type="file" accept=".xlsx,.xls,.csv" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importarGradoDesdeExcel(this)"></label>
+
+      <details style="margin-top:12px;font-size:13px;color:#5a5346">
+        <summary style="cursor:pointer;color:#1d3a5f">¿Cómo tiene que estar armado el Excel?</summary>
+        <p style="margin:8px 0 4px">Muy simple: una planilla con los nombres de los alumnos del grado. Sirve cualquiera de estos formatos:</p>
+        <ul style="margin:4px 0;padding-left:20px">
+          <li>Una sola columna con «Apellido y Nombre» completo</li>
+          <li>Dos columnas: «Apellido» + «Nombre» separadas</li>
+          <li>Sin encabezados: solo los nombres en la primera columna</li>
+        </ul>
+        <p style="margin:6px 0">Se ignoran filas vacías. Si algún alumno ya existe en el grado, no se duplica.</p>
+        <button class="btnMin" style="margin-top:6px" onclick="descargarPlantillaSimple()">📥 Descargar plantilla modelo simple</button>
+      </details>
+    </div>
+
+    <!-- MÉTODO 2: MANUAL -->
+    <div class="panel">
+      <b style="color:#1d3a5f;font-size:15px">✍ Método 2 · Agregar alumnos manualmente</b>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="lbl">Nivel</label>
+          <select id="inNivel" onchange="onCambiarNivel('inGrado', this.value)">
+            <option value="">— Elegir nivel —</option>
+            ${NIVELES.map(n=>`<option value="${n}" ${D.nivelActivo===n?"selected":""}>${n}</option>`).join("")}
+          </select></div>
+        <div><label class="lbl">Grado</label>
+          <select id="inGrado" onchange="onSelectGrado(this)">
+            ${opcionesGrado(D.nivelActivo || "", D.gradoActivo || "")}
+          </select></div>
+      </div>
+      <label class="lbl">Apellido, Nombre</label>
+      <input id="inNombre" placeholder="Álvarez, Sofía" style="width:100%" onkeydown="if(event.key==='Enter')agregarAlumno()">
+      <button class="btn" style="margin-top:10px" onclick="agregarAlumno()">Agregar alumno</button>
+
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:#1d3a5f;font-size:13.5px">Pegar lista completa de un grado (varios alumnos a la vez)</summary>
+        <p style="font-size:13px;color:#5a5346;margin:6px 0">Los alumnos se agregan al Nivel y Grado seleccionados arriba. Un alumno por línea.</p>
+        <textarea id="inMasivo" rows="6" style="width:100%;margin-top:4px" placeholder="Álvarez, Sofía&#10;Benítez, Tomás&#10;Cardozo, Milagros&#10;…"></textarea>
+        <button class="btn" style="margin-top:8px" onclick="agregarLista()">Agregar todos</button>
+      </details>
+    </div>
+
+    <!-- LISTA ACTUAL -->
+    <h2 style="margin-top:24px">Alumnos cargados (${D.alumnos.length})</h2>
+    ${listaAgrupada}
+  </section>`;
 }
 
-function mostrarMsg(tipo, texto) {
-  const div = document.getElementById('msgLogin');
-  if (div) {
-    div.innerHTML = '<div class="' + tipo + ' msg">' + texto + '</div>';
-    setTimeout(() => { div.innerHTML = ''; }, 5000);
+// ── Importar un grado desde Excel (flujo simple) ──
+window.importarGradoDesdeExcel = (input) => {
+  const nivel = document.getElementById("impNivel").value;
+  const grado = document.getElementById("impGrado").value;
+  const titularId = document.getElementById("impTitular").value;
+
+  if(!nivel){ alert("Elegí primero el Nivel."); input.value=""; return; }
+  if(!grado){ alert("Elegí primero el Grado."); input.value=""; return; }
+
+  const f = input.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:"array"});
+      let nuevos = 0, dup = 0;
+      // Recorrer todas las hojas del archivo
+      wb.SheetNames.forEach(nombreHoja => {
+        const ws = wb.Sheets[nombreHoja];
+        const filas = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if(filas.length === 0) return;
+
+        // Detectar si la primera fila es encabezado
+        const primeraFila = filas[0].map(normalizar);
+        const hayEncabezado = primeraFila.some(c => ["nombre","apellido","apellido y nombre","apellido, nombre","alumno","alumna","estudiante"].includes(c));
+        const idxInicio = hayEncabezado ? 1 : 0;
+
+        let iNombreCompleto = -1, iApellido = -1, iNombre = -1;
+        if(hayEncabezado){
+          iNombreCompleto = detectarColumna(filas[0], ["apellido y nombre","apellido, nombre","nombre completo","alumno","alumna","estudiante"]);
+          iApellido = detectarColumna(filas[0], ["apellido"]);
+          iNombre = detectarColumna(filas[0], ["nombre","nombres"]);
+        }
+
+        for(let i=idxInicio; i<filas.length; i++){
+          const fila = filas[i];
+          if(!fila || fila.every(c=>String(c).trim()==="")) continue;
+          let nombreAlumno = "";
+          if(hayEncabezado){
+            if(iNombreCompleto>=0) nombreAlumno = String(fila[iNombreCompleto]||"").trim();
+            else if(iApellido>=0 && iNombre>=0) nombreAlumno = `${String(fila[iApellido]||"").trim()}, ${String(fila[iNombre]||"").trim()}`.replace(/^,\s*|,\s*$/,"").trim();
+            else if(iApellido>=0) nombreAlumno = String(fila[iApellido]||"").trim();
+            else if(iNombre>=0) nombreAlumno = String(fila[iNombre]||"").trim();
+            else nombreAlumno = String(fila[0]||"").trim();
+          } else {
+            // Sin encabezado: si hay dos columnas asumo Apellido + Nombre, si no la primera
+            if(fila.length>=2 && String(fila[1]||"").trim()) nombreAlumno = `${String(fila[0]||"").trim()}, ${String(fila[1]||"").trim()}`.replace(/^,\s*|,\s*$/,"").trim();
+            else nombreAlumno = String(fila[0]||"").trim();
+          }
+          if(!nombreAlumno || nombreAlumno.length<2) continue;
+
+          const existe = D.alumnos.some(a => normalizar(a.nombre)===normalizar(nombreAlumno) && (a.grado||"")===grado && (a.nivel||"")===nivel);
+          if(existe){ dup++; continue; }
+          D.alumnos.push({id:uid(), nombre:nombreAlumno, nivel, grado});
+          nuevos++;
+        }
+      });
+
+      // Asignar titular si eligió uno
+      if(titularId && nuevos > 0){
+        const yaEs = D.titularidades.find(t => t.nivel===nivel && t.grado===grado);
+        if(yaEs) yaEs.docenteId = titularId;
+        else D.titularidades.push({id:uid(), nivel, grado, docenteId:titularId});
+      }
+
+      if(nuevos===0 && dup===0){
+        alert("No se encontraron alumnos en la planilla. Revisá que tenga al menos una columna con los nombres.");
+      } else {
+        guardar(); render();
+        const titularTxt = titularId ? `\n\nTitular asignado: ${D.docentes.find(d=>d.id===titularId)?.nombre}` : "";
+        alert(`✓ Importación completa\n\nGrado: ${nivel} · ${grado}\nAlumnos nuevos agregados: ${nuevos}${dup?`\nYa existían (no se duplicaron): ${dup}`:""}${titularTxt}`);
+      }
+    } catch(err){
+      alert("No se pudo leer la planilla:\n" + err.message);
+    }
+    input.value = "";
+  };
+  fr.readAsArrayBuffer(f);
+};
+
+window.descargarPlantillaSimple = () => {
+  const wb = XLSX.utils.book_new();
+  const datos = [
+    ["Apellido y Nombre"],
+    ["Álvarez, Sofía"],
+    ["Benítez, Tomás"],
+    ["Cardozo, Milagros"],
+    ["Domínguez, Bautista"],
+    ["Estévez, Julieta"],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(datos);
+  ws["!cols"] = [{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, "Listado del grado");
+  XLSX.writeFile(wb, "plantilla_listado_alumnos.xlsx");
+};
+
+window.agregarAlumno = () => {
+  const n = document.getElementById("inNombre").value.trim();
+  const niv = document.getElementById("inNivel").value;
+  const g = document.getElementById("inGrado").value;
+  if(!n){ alert("Escribí el nombre del alumno."); return; }
+  if(!niv){ alert("Elegí el nivel."); return; }
+  if(!g || g==="__otro__"){ alert("Elegí el grado."); return; }
+  D.alumnos.push({id:uid(),nombre:n,nivel:niv,grado:g}); guardar(); render();
+};
+
+window.agregarLista = () => {
+  const niv = document.getElementById("inNivel").value;
+  const g = document.getElementById("inGrado").value;
+  if(!niv || !g || g==="__otro__"){ alert("Elegí primero el nivel y el grado arriba."); return; }
+  const nuevos = document.getElementById("inMasivo").value.split("\n").map(s=>s.trim()).filter(Boolean).map(n=>({id:uid(),nombre:n,nivel:niv,grado:g}));
+  if(!nuevos.length) return;
+  D.alumnos.push(...nuevos); guardar(); render();
+};
+
+window.editarAlumno = (id) => {
+  const a = D.alumnos.find(x=>x.id===id); if(!a) return;
+  const nuevoNombre = prompt("Nombre del alumno:", a.nombre);
+  if(nuevoNombre===null) return;
+  if(nuevoNombre.trim()) a.nombre = nuevoNombre.trim();
+  guardar(); render();
+};
+
+window.onCambiarNivel = (idSelectGrado, nivel) => {
+  const sel = document.getElementById(idSelectGrado);
+  if(!sel) return;
+  sel.innerHTML = opcionesGrado(nivel, "");
+};
+
+window.onSelectGrado = (sel) => {
+  if(sel.value === "__otro__"){
+    const otro = prompt("Escribir grado / curso / sala:");
+    if(otro && otro.trim()){
+      const val = otro.trim();
+      // Verificar si ya existe la opción
+      let opt = Array.from(sel.options).find(o => o.value === val);
+      if(!opt){
+        opt = document.createElement("option");
+        opt.value = val; opt.textContent = val + " (personalizado)";
+        sel.insertBefore(opt, sel.querySelector('[value="__otro__"]'));
+      }
+      sel.value = val;
+    } else {
+      sel.value = "";
+    }
+  }
+};
+
+window.loginAdmin = () => {
+  const pass = document.getElementById("adminPass").value;
+  if(pass === "direccion"){
+    D.adminLogged = true;
+    document.getElementById("adminPass").value = "";
+    document.getElementById("adminMsg").textContent = "✓ Acceso otorgado";
+    setTimeout(() => { document.getElementById("adminMsg").textContent = ""; }, 3000);
+    guardar(); render();
+  } else {
+    document.getElementById("adminMsg").textContent = "✗ Clave incorrecta";
+    setTimeout(() => { document.getElementById("adminMsg").textContent = ""; }, 3000);
+  }
+};
+
+window.logoutAdmin = () => {
+  D.adminLogged = false;
+  guardar(); render();
+};
+
+window.editarRegistro = (id) => {
+  if(!D.adminLogged){ alert("Necesitás acceso administrativo para editar registros."); return; }
+  const reg = D.registros.find(r=>r.id===id); if(!reg) return;
+  const falta = CATALOGO.find(f=>f.id===reg.faltaId);
+  const obs = prompt("Observaciones del registro:", reg.obs);
+  if(obs === null) return;
+  reg.obs = obs;
+  guardar(); render();
+};
+
+window.borrarRegistro = (id) => {
+  if(!D.adminLogged){ alert("Necesitás acceso administrativo para borrar registros."); return; }
+  if(!confirm("¿Borrar este registro de falta? Solo dirección puede hacer esto.")) return;
+  D.registros = D.registros.filter(r=>r.id!==id);
+  guardar(); render();
+};
+
+// ── Helpers de importación ──
+function normalizar(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(); }
+function detectarColumna(headers, opciones){
+  for(let i=0;i<headers.length;i++){
+    const h = normalizar(headers[i]);
+    if(opciones.some(o => h===o || h.includes(o))) return i;
+  }
+  return -1;
+}
+
+window.quitarAlumno = id => {
+  if(!confirm("¿Quitar al alumno y todos sus registros?")) return;
+  D.alumnos = D.alumnos.filter(a=>a.id!==id);
+  D.registros = D.registros.filter(r=>r.alumnoId!==id);
+  D.reconocimientos = D.reconocimientos.filter(r=>r.alumnoId!==id);
+  guardar(); render();
+};
+
+window.trasladarAlumno = (alumnoId) => {
+  const al = D.alumnos.find(a=>a.id===alumnoId); if(!al) return;
+  const nivelActual = al.nivel || "";
+  const gradoActual = al.grado || "";
+  
+  const nuevoNivel = prompt("Nuevo nivel (Inicial / Primario / Secundario):", nivelActual);
+  if(!nuevoNivel) return;
+  if(!NIVELES.includes(nuevoNivel)){ alert("Nivel no válido."); return; }
+  
+  const gradosDisp = GRADOS_PRESET[nuevoNivel] || [];
+  const nuevoGrado = prompt("Nuevo grado:\n" + gradosDisp.join(", "), gradoActual);
+  if(!nuevoGrado) return;
+  if(!gradosDisp.includes(nuevoGrado) && nuevoGrado !== gradoActual){
+    if(!confirm("El grado no está en la lista estándar. ¿Continuar de todas formas?")) return;
+  }
+  
+  al.nivel = nuevoNivel;
+  al.grado = nuevoGrado;
+  
+  guardar(); render();
+  alert(`✓ Alumno trasladado\n\n${al.nombre}\nDe: ${nivelActual || "—"} · ${gradoActual || "—"}\nA: ${nuevoNivel} · ${nuevoGrado}\n\nTodos los antecedentes se mantienen en la app.`);
+};
+
+// ── Registrar ──
+function vRegistro(){
+  const listaAlumnos = alumnosFiltrados();
+  const cats = [...new Set(CATALOGO.map(f=>f.cat))];
+  const falta = CATALOGO.find(f=>f.id===form.faltaId);
+  const equivFinal = form.equiv ?? (falta ? EQUIV[falta.gravedad] : 1);
+  const res = form.alumnoId ? resumenAlumno(form.alumnoId) : null;
+  let avisoAlumno = "";
+  if (res) {
+    avisoAlumno = `<div class="aviso ${res.afectaNota?"rojo":""}">Acumula <b>${res.llamados}</b> llamado${res.llamados===1?"":"s"} en este período${res.firmas?` · ${res.firmas} firma${res.firmas===1?"":"s"} en libro de disciplina`:""}. Corresponde valoración <b>${res.tramo==="regular"?"Regular":res.tramo==="bueno"?"Bueno":"Muy bueno"}</b> en el GEI.</div>`;
+  }
+  let panelFalta = "";
+  if (falta) {
+    panelFalta = `<div class="panel" style="border-left:4px solid ${colorG(falta.gravedad)}">
+      <span class="badge" style="background:${colorG(falta.gravedad)}">Falta ${falta.gravedad}</span>
+      <span class="badge" style="background:#1d3a5f">${ASPECTOS[falta.aspecto].nombre}</span>
+      ${falta.gravedad!=="leve"?'<span class="badge" style="background:#8a6d2f">Firma libro de disciplina + aviso a Dirección</span>':""}
+      <p style="margin:10px 0 6px;font-size:14px"><b>Protocolo:</b> ${ACCIONES[falta.gravedad]}</p>
+      ${falta.gravedad!=="leve"?`<label class="lbl">Equivalencia en llamados (se define en diálogo con el Equipo Directivo)</label>
+        <select onchange="form.equiv=Number(this.value)"><option value="2" ${equivFinal===2?"selected":""}>2 llamados de atención</option><option value="3" ${equivFinal===3?"selected":""}>3 llamados de atención</option></select>`:""}
+    </div>`;
+  }
+  return `<section class="card"><h2>Registrar llamado de atención</h2>
+    ${listaAlumnos.length===0?`<p class='vacio'>${D.alumnos.length===0?"Primero cargá la lista del curso en la pestaña «Alumnos».":`No hay alumnos en el grado «${esc(D.gradoActivo)}». Cambiá el grado activo arriba.`}</p>`:""}
+    <div class="grid2">
+      <div><label class="lbl">Alumno${D.gradoActivo?` · ${esc(D.gradoActivo)}`:""}</label>
+        <select style="width:100%" onchange="form.alumnoId=this.value;render()">
+          <option value="">Elegir alumno…</option>
+          ${listaAlumnos.map(a=>`<option value="${a.id}" ${form.alumnoId===a.id?"selected":""}>${esc(a.nombre)}${a.grado&&!D.gradoActivo?` — ${esc(a.grado)}`:""}</option>`).join("")}
+        </select>${avisoAlumno}</div>
+      <div><label class="lbl">Fecha</label>
+        <input type="date" value="${form.fecha}" onchange="form.fecha=this.value"></div>
+    </div>
+    <label class="lbl">Falta al AEC</label>
+    <select style="width:100%" onchange="form.faltaId=this.value;form.equiv=null;render()">
+      <option value="">Elegir la falta observada…</option>
+      ${cats.map(c=>`<optgroup label="${esc(c)}">${CATALOGO.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${form.faltaId===f.id?"selected":""}>${esc(f.texto)} — ${f.gravedad.toUpperCase()}</option>`).join("")}</optgroup>`).join("")}
+    </select>
+    ${panelFalta}
+    <div class="grid2">
+      <div><label class="lbl">Observaciones (contexto, intencionalidad, reiteración…)</label>
+        <textarea rows="3" style="width:100%" onchange="form.obs=this.value">${esc(form.obs)}</textarea></div>
+      <div><label class="lbl">Acción reparadora propuesta</label>
+        <textarea rows="3" style="width:100%" placeholder="Pedido de disculpas, reflexión guiada, compromiso de mejora…" onchange="form.reparadora=this.value">${esc(form.reparadora)}</textarea></div>
+    </div>
+    <button class="btn" onclick="registrar()">Registrar llamado</button>
+    ${form.ok?`<div class="aviso">${form.ok}</div>`:""}
+  </section>`;
+}
+window.registrar = () => {
+  const falta = CATALOGO.find(f=>f.id===form.faltaId);
+  if(!form.alumnoId || !falta) return;
+  const equiv = form.equiv ?? EQUIV[falta.gravedad];
+  const doc = D.docentes.find(d=>d.id===D.docenteActivo);
+  D.registros.push({id:uid(), alumnoId:form.alumnoId, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
+    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:form.fecha, periodo:D.periodo, anoEscolar:D.anoEscolar,
+    obs:form.obs.trim(), reparadora:form.reparadora.trim(), firmaLibro:falta.gravedad!=="leve",
+    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
+  const a = D.alumnos.find(x=>x.id===form.alumnoId);
+  form.ok = `Registrado para ${esc(a.nombre)}${doc?` por ${esc(doc.nombre)}`:""}.` + (falta.gravedad!=="leve" ? " Corresponde firma en el libro de disciplina y aviso a Dirección." : "");
+  form.faltaId=""; form.obs=""; form.reparadora=""; form.equiv=null;
+  guardar(); render();
+  setTimeout(()=>{ form.ok=""; if(tab==="registro") render(); }, 6000);
+};
+
+// ── Grilla ──
+function vGrilla(){
+  const pN = PERIODOS.find(p=>p.id===D.periodo).nombre;
+  const listaAlumnos = alumnosFiltrados();
+  const filas = listaAlumnos.map(a=>{
+    const r = resumenAlumno(a.id);
+    const key = a.id+"_"+D.periodo;
+    const revertible = r.llamados===0 && Object.entries(D.reparadas).some(([k,v])=>v && k.startsWith(a.id));
+    const cuadros = [1,2,3,4,5,6,7,8,9,10].map(i=>{
+      let color = "transparent";
+      if(r.llamados >= i){
+        if(r.llamados >= 10) color = "#a34434";
+        else if(r.llamados >= 5) color = "#8a6d2f";
+        else color = "#5c7350";
+      }
+      const separador = (i===4 || i===9) ? "margin-right:6px" : "";
+      return `<span class="cuadro" style="background:${color};${separador}"></span>`;
+    }).join("") + (r.llamados>10?`<b style="color:#a34434;margin-left:4px">+${r.llamados-10}</b>`:"");
+    const estado = r.tramo==="regular"
+      ? `<span class="badge" style="background:#a34434">Regular · ≥10 llamados</span>`
+      : r.tramo==="bueno" ? `<span class="badge" style="background:#8a6d2f">Bueno · 5–9 llamados</span>`
+      : r.llamados>0 ? `<span class="badge" style="background:#5c7350">Muy bueno · ${r.llamados} llamado${r.llamados===1?"":"s"}</span>`
+      : `<span class="badge" style="background:#5c7350">Muy bueno · sin llamados</span>`;
+    let detalle = "";
+    if (abierto===a.id) {
+      detalle = r.regs.map(reg=>`<tr style="background:#f7f4ec"><td colspan="5" style="font-size:13px">
+        <b>${reg.fecha}</b> · <span style="color:${colorG(reg.gravedad)};font-weight:700">${reg.gravedad.toUpperCase()}</span> (${reg.equiv} llamado${reg.equiv>1?"s":""}) · ${esc(reg.texto)}${reg.firmaLibro?" · Firma en libro":""}
+        ${reg.docenteNombre?`<br><b>Docente:</b> ${esc(reg.docenteNombre)}`:""}
+        ${reg.obs?`<br><i>Obs.: ${esc(reg.obs)}</i>`:""}${reg.reparadora?`<br><i>Acción reparadora: ${esc(reg.reparadora)}</i>`:""}
+      </td><td>${D.adminLogged?`<button class="btnMin" onclick="editarRegistro('${reg.id}')" style="font-size:11px">Editar</button><br><button class="btnMin" onclick="borrarRegistro('${reg.id}')" style="font-size:11px;background:#a34434;margin-top:2px">Borrar</button>`:"—"}</td></tr>`).join("");
+    }
+    return `<tr style="${r.afectaNota?"background:#f9edeb":""}">
+      <td>${esc(a.nombre)}</td>
+      <td style="text-align:center;white-space:nowrap">${cuadros}</td>
+      <td style="text-align:center">${r.firmas||"—"}</td>
+      <td>${estado}${revertible?'<span class="badge" style="background:#5c7350">Situación revertida ✓</span>':""}</td>
+      <td style="font-size:13px"><label style="display:flex;gap:6px;align-items:center;cursor:pointer">
+        <input type="checkbox" ${D.reparadas[key]?"checked":""} onchange="D.reparadas['${key}']=this.checked;guardar();render()"> Acciones reparadoras cumplidas</label></td>
+      <td><button class="btnMin" onclick="toggleDetalle('${a.id}')">${abierto===a.id?"Cerrar":"Detalle ("+r.regs.length+")"}</button></td>
+    </tr>${detalle}`;
+  }).join("");
+  return `<section class="card"><h2>Grilla de llamados · ${pN}${D.gradoActivo?` · ${esc(D.gradoActivo)}`:""}</h2>
+    ${listaAlumnos.length===0?`<p class='vacio'>${D.alumnos.length===0?"Sin alumnos cargados.":`No hay alumnos en «${esc(D.gradoActivo)}».`}</p>`:""}
+    <div style="overflow-x:auto"><table><thead><tr><th>Alumno</th><th>Llamados</th><th>Libro disc.</th><th>Estado</th><th>Reversión</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
+    <p style="font-size:13px;color:#5a5346;margin-top:12px">Escala institucional para el GEI: <b>Muy bueno</b> con 0–4 llamados · <b>Bueno</b> con 5–9 llamados · <b>Regular</b> con 10 o más. La situación puede revertirse si en el período siguiente no hay nuevos llamados y se cumplen las acciones reparadoras.</p>
+  </section>`;
+}
+window.toggleDetalle = id => { abierto = abierto===id ? null : id; render(); };
+
+// ── Informe GEI ──
+function vGEI(){
+  const pN = PERIODOS.find(p=>p.id===D.periodo).nombre;
+  const cabeceras = Object.values(ASPECTOS).map(a=>`<th>${a.nombre}</th>`).join("");
+  const tarjetas = Object.values(ASPECTOS).map(a=>`<div class="panel" style="flex:1 1 220px;margin:0"><b style="color:#1d3a5f">${a.nombre}</b><div style="font-size:13px;color:#5a5346">${a.desc}</div></div>`).join("");
+  const filas = alumnosFiltrados().map(al=>{
+    const r = resumenAlumno(al.id);
+    const celdas = Object.keys(ASPECTOS).map(k=>{
+      const info = r.porAspecto[k];
+      const okey = al.id+"_"+D.periodo+"_"+k;
+      const valor = D.overrides[okey] || info.sugerida;
+      const ajustada = D.overrides[okey] && D.overrides[okey]!==info.sugerida;
+      return `<td><select style="border-color:${colorV(valor)};font-weight:600;color:${colorV(valor)}" onchange="D.overrides['${okey}']=this.value;guardar();render()">
+          ${VALORACIONES.map(v=>`<option ${v===valor?"selected":""}>${v}</option>`).join("")}
+        </select>
+        <div style="font-size:12px;color:#5a5346;margin-top:3px">${info.llamados} llamado${info.llamados===1?"":"s"}${info.grave?" · falta grave":info.moderada?" · falta moderada":""}${ajustada?" · ajustada por el docente":""}</div></td>`;
+    }).join("");
+    return `<tr><td>${esc(al.nombre)}${r.tramo!=="muybueno"?`<div><span class="badge" style="background:${r.tramo==="regular"?"#a34434":"#8a6d2f"}">${r.llamados} llamados</span></div>`:""}</td>${celdas}</tr>`;
+  }).join("");
+  return `<section class="card"><h2>Informe de Normas de Convivencia para el GEI · ${pN}</h2>
+    <p style="font-size:14px;color:#5a5346;margin-top:0">Valoración por los tres ejes de la cultura del cuidado (Anexo II, Res. 1949-DGE-22). La valoración sugerida se calcula desde la grilla; el docente puede ajustarla antes de volcarla al GEI.</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 18px">${tarjetas}</div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Alumno</th>${cabeceras}</tr></thead><tbody>${filas}</tbody></table></div>
+    <button class="btn no-print" style="margin-top:14px" onclick="window.print()">Imprimir / guardar como PDF</button>
+    <details style="margin-top:16px;font-size:14px">
+      <summary style="cursor:pointer;color:#1d3a5f">Criterio de la valoración sugerida</summary>
+      <ul style="margin-top:8px">
+        <li><b>Muy bueno (MB):</b> de 0 a 4 llamados de atención acumulados.</li>
+        <li><b>Bueno (B):</b> entre 5 y 9 llamados de atención.</li>
+        <li><b>Regular (R):</b> 10 o más llamados de atención.</li>
+      </ul>
+      <p>Recordá que a los 5 llamados corresponde también aviso a la familia y compromisos de mejora, y que las faltas moderadas o graves suman 2 o 3 llamados cada una (según se acuerde con el Equipo Directivo).</p>
+      <p>El ajuste manual permite contemplar atenuantes (reconocimiento espontáneo, ausencia de intencionalidad, carácter ocasional, gestos conciliadores) y agravantes (premeditación, reiteración, violencia, actos contra quien está en situación de vulnerabilidad), según el AEC.</p>
+    </details>
+  </section>`;
+}
+
+window.archivarAntecedentes = (alumnoId, periodo) => {
+  if(!D.adminLogged){ alert("Solo dirección puede archivar antecedentes."); return; }
+  if(!confirm(`¿Archivar todos los registros de este período como antecedentes?\n\nLos datos se guardarán en el historial del alumno y en el próximo período empezará de cero.`)) return;
+  
+  const regsAArchivar = D.registros.filter(r => r.alumnoId===alumnoId && r.periodo===periodo);
+  const reconAArchivar = D.reconocimientos.filter(r => r.alumnoId===alumnoId && r.periodo===periodo);
+  
+  if(regsAArchivar.length === 0 && reconAArchivar.length === 0){ alert("No hay registros para archivar en este período."); return; }
+  
+  // Mover a antecedentes
+  regsAArchivar.forEach(r => { D.antecedentes.push({...r, fechaArchivo: new Date().toISOString().slice(0,10)}); });
+  reconAArchivar.forEach(r => { D.antecedentes.push({...r, fechaArchivo: new Date().toISOString().slice(0,10)}); });
+  
+  // Eliminar de registros actuales
+  D.registros = D.registros.filter(r => !(r.alumnoId===alumnoId && r.periodo===periodo));
+  D.reconocimientos = D.reconocimientos.filter(r => !(r.alumnoId===alumnoId && r.periodo===periodo));
+  
+  guardar(); render();
+  alert(`✓ Archivado\n\nLlamados: ${regsAArchivar.length}\nReconocimientos: ${reconAArchivar.length}\n\nTodos los datos quedan como antecedentes del alumno.`);
+};
+
+// ── Informe individual ──
+let alumnoInforme = "";
+function vInforme(){
+  const pN = PERIODOS.find(p=>p.id===D.periodo).nombre;
+  const selector = `<div class="no-print" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px">
+    <div><label class="lbl">Alumno${D.gradoActivo?` · ${esc(D.gradoActivo)}`:""}</label>
+      <select onchange="alumnoInforme=this.value;render()">
+        <option value="">Elegir alumno…</option>
+        ${alumnosFiltrados().map(a=>`<option value="${a.id}" ${alumnoInforme===a.id?"selected":""}>${esc(a.nombre)}${a.grado&&!D.gradoActivo?` — ${esc(a.grado)}`:""}</option>`).join("")}
+      </select></div>
+    <div><label class="lbl">Grado / curso</label>
+      <input value="${esc(D.config.grado||"")}" placeholder="Ej.: 4º grado A" onchange="D.config.grado=this.value;guardar()"></div>
+    <div><label class="lbl">Docente</label>
+      <input value="${esc(D.config.docente||"")}" placeholder="Apellido y nombre" onchange="D.config.docente=this.value;guardar()"></div>
+    ${alumnoInforme?'<button class="btn" onclick="window.print()">Imprimir / guardar como PDF</button>':""}
+  </div>`;
+  if(!alumnoInforme) return `<section class="card"><h2>Informe individual de convivencia</h2>${selector}
+    <p class="vacio">Elegí un alumno para generar su informe del período, listo para imprimir o guardar como PDF y volcar al GEI.</p></section>`;
+
+  const al = D.alumnos.find(a=>a.id===alumnoInforme);
+  if(!al){ alumnoInforme=""; return vInforme(); }
+  
+  // Obtener fechas del filtro
+  const fechaDesde = document.getElementById("inFechaDesde")?.value || "2000-01-01";
+  const fechaHasta = document.getElementById("inFechaHasta")?.value || "2099-12-31";
+  
+  // Generar resumen filtrando por fecha
+  let r = resumenAlumno(al.id);
+  r.regs = r.regs.filter(reg => reg.fecha >= fechaDesde && reg.fecha <= fechaHasta);
+  const okeyBase = al.id+"_"+D.periodo;
+  const obsKey = okeyBase+"_obs";
+  const detalle = r.regs.length
+    ? `<table style="margin-top:6px"><thead><tr><th>Fecha</th><th>Falta al AEC</th><th>Gravedad</th><th>Ll.</th><th>Docente</th><th>Acción reparadora</th></tr></thead><tbody>
+      ${r.regs.map(reg=>`<tr>
+        <td style="white-space:nowrap">${reg.fecha}</td>
+        <td>${esc(reg.texto)}${reg.obs?`<br><i style="font-size:12.5px;color:#5a5346">Obs.: ${esc(reg.obs)}</i>`:""}</td>
+        <td style="color:${colorG(reg.gravedad)};font-weight:700;text-transform:capitalize">${reg.gravedad}${reg.firmaLibro?"<br><span style='font-size:11.5px;font-weight:400;color:#5a5346'>Firma en libro</span>":""}</td>
+        <td style="text-align:center">${reg.equiv}</td>
+        <td style="font-size:12.5px">${esc(reg.docenteNombre||"—")}</td>
+        <td style="font-size:13px">${esc(reg.reparadora||"—")}</td>
+      </tr>`).join("")}
+      <tr><td colspan="3" style="text-align:right;font-weight:700">Total de llamados del período:</td>
+        <td style="text-align:center;font-weight:700;color:${r.afectaNota?"#a34434":"#1d3a5f"}">${r.llamados}</td>
+        <td colspan="2" style="font-size:13px">${r.firmas?r.firmas+" firma"+(r.firmas===1?"":"s")+" en libro":""}</td></tr>
+    </tbody></table>`
+    : `<p style="font-size:14.5px;color:#2e5e3f"><b>Sin llamados de atención registrados en el período.</b> El alumno sostuvo las normas de convivencia acordadas en el AEC.</p>`;
+
+  const recons = D.reconocimientos.filter(r => r.alumnoId===al.id && r.periodo===D.periodo);
+  const seccionReconocimientos = recons.length
+    ? `<table style="margin-top:6px"><thead><tr><th>Fecha</th><th>Virtud</th><th>Descripción</th><th>Docente</th></tr></thead><tbody>
+        ${recons.map(rc => {
+          const v = VIRTUDES.find(vx=>vx.id===rc.virtudId);
+          return `<tr>
+            <td style="white-space:nowrap">${rc.fecha}</td>
+            <td><span class="badge" style="background:${v?.color||"#5c7350"}">${esc(rc.virtudNombre||v?.nombre||"")}</span></td>
+            <td style="font-size:13px">${esc(rc.detalle || rc.ejemplo || "")}${rc.clase?`<br><i style="color:#5a5346">Durante: ${esc(rc.clase)}</i>`:""}</td>
+            <td style="font-size:12.5px">${esc(rc.docenteNombre||"")}</td>
+          </tr>`;
+        }).join("")}
+        <tr><td colspan="3" style="text-align:right;font-weight:700">Total de reconocimientos:</td>
+          <td style="text-align:center;font-weight:700;color:#2e5e3f">${recons.length}</td></tr>
+      </tbody></table>`
+    : `<p style="font-size:14px;color:#5a5346;font-style:italic">Sin reconocimientos registrados en el período.</p>`;
+
+  const ejes = Object.keys(ASPECTOS).map(k=>{
+    const info = r.porAspecto[k];
+    const valor = D.overrides[okeyBase+"_"+k] || info.sugerida;
+    return `<tr><td><b>${ASPECTOS[k].nombre}</b><div style="font-size:12.5px;color:#5a5346">${ASPECTOS[k].desc}</div></td>
+      <td style="text-align:center;font-weight:700;color:${colorV(valor)};font-size:16px">${valor}</td>
+      <td style="font-size:13px;color:#5a5346">${info.llamados} llamado${info.llamados===1?"":"s"}${info.grave?" · falta grave":info.moderada?" · falta moderada":""}</td></tr>`;
+  }).join("");
+
+  const key = al.id+"_"+D.periodo;
+  const revertible = r.llamados===0 && Object.entries(D.reparadas).some(([k,v])=>v && k.startsWith(al.id));
+
+  const titularAlumno = titularDe(al.nivel, al.grado);
+
+  return `<section class="card">
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <div><label class="lbl">Desde (fecha)</label><input type="date" id="inFechaDesde" value="${new Date().getFullYear()}-01-01" onchange="render()"></div>
+      <div><label class="lbl">Hasta (fecha)</label><input type="date" id="inFechaHasta" value="${new Date().toISOString().slice(0,10)}" onchange="render()"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btnMin" onclick="document.getElementById('inFechaDesde').value='${new Date().getFullYear()}-01-01';document.getElementById('inFechaHasta').value='${new Date().toISOString().slice(0,10)}';render()">Limpiar filtro</button></div>
+    </div>
+    <div style="border:2px solid #1d3a5f;padding:24px 26px;background:#fff">
+      <div style="text-align:center;border-bottom:3px double #1d3a5f;padding-bottom:12px;margin-bottom:16px">
+        <div style="font-size:17px;font-weight:700;color:#1d3a5f">${esc(D.config.escuela)}</div>
+        <div style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px">Informe de Normas de Convivencia</div>
+        <div style="font-size:12.5px;color:#5a5346">Acuerdo Escolar de Convivencia 2026 · Res. 1949-DGE-22 (Anexo II) · para volcado al GEI</div>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14.5px;margin-bottom:14px">
+        <span><b>Alumno/a:</b> ${esc(al.nombre)}</span>
+        <span><b>Nivel:</b> ${esc(al.nivel || "—")}</span>
+        <span><b>Grado:</b> ${esc(al.grado || D.config.grado || "—")}</span>
+        ${titularAlumno ? `<span><b>Docente titular:</b> ${esc(titularAlumno.nombre)}</span>` : ""}
+        <span><b>Período:</b> ${pN}</span>
+      </div>
+      <h3 style="font-size:15px;color:#1d3a5f;margin:14px 0 4px">1 · Llamados de atención al AEC</h3>
+      ${detalle}
+      ${r.tramo==="regular"?`<p style="font-size:13.5px;color:#a34434;margin-top:8px"><b>El alumno acumula 10 o más llamados de atención en el período: corresponde valoración Regular (R) en el GEI.</b> Situación reversible en el período siguiente sin nuevos llamados y con acciones reparadoras cumplidas.</p>`
+        : r.tramo==="bueno"?`<p style="font-size:13.5px;color:#8a6d2f;margin-top:8px"><b>El alumno acumula entre 5 y 9 llamados: corresponde valoración Bueno (B) en el GEI.</b></p>`:""}
+      ${revertible?`<p style="font-size:13.5px;color:#2e5e3f;margin-top:8px"><b>Situación revertida:</b> período sin llamados y acciones reparadoras cumplidas.</p>`:""}
+      <h3 style="font-size:15px;color:#1d3a5f;margin:18px 0 4px">2 · Reconocimientos por virtudes 🌱 <span style="font-size:12px;font-weight:400;color:#5a5346">Proyecto Sembrando Virtudes</span></h3>
+      ${seccionReconocimientos}
+      <h3 style="font-size:15px;color:#1d3a5f;margin:18px 0 4px">3 · Valoración por ejes de la cultura del cuidado</h3>
+      <table><thead><tr><th>Eje</th><th style="text-align:center">Valoración</th><th>Fundamento</th></tr></thead><tbody>${ejes}</tbody></table>
+      <h3 style="font-size:15px;color:#1d3a5f;margin:18px 0 4px">4 · Observaciones del docente</h3>
+      <textarea rows="3" style="width:100%;font-size:14px" placeholder="Apreciación global, atenuantes o agravantes considerados, compromisos asumidos…"
+        onchange="D.informeObs['${obsKey}']=this.value;guardar()">${esc(D.informeObs[obsKey]||"")}</textarea>
+      
+      ${D.antecedentes.filter(a => a.alumnoId === al.id).length > 0 
+        ? `<h3 style="font-size:15px;color:#8a6d2f;margin:18px 0 4px">📋 Antecedentes históricos del alumno</h3>
+           <div style="background:#fffbf0;padding:12px;border-left:3px solid #c9b06a;font-size:13.5px;color:#5a5346;margin:8px 0">
+             <p><b>Estos son registros archivados de períodos anteriores.</b> Se conservan como historial del alumno cuando ha cambiado de grado o finalizó un período.</p>
+             ${D.antecedentes.filter(a => a.alumnoId === al.id).map((ant, i) => {
+               if(ant.faltaId) { // es un registro
+                 const falta = CATALOGO.find(f => f.id === ant.faltaId);
+                 return `<div style="margin:6px 0;padding:6px;background:#fff;border-radius:3px">
+                   <b>${ant.fecha}</b> · Período: ${ant.periodo} · Año: ${ant.anoEscolar || "—"}
+                   <br><i style="font-size:12px">${esc(falta?.nombre || ant.texto || "—")}</i>
+                   ${ant.docenteNombre ? `<br><span style="font-size:12px;color:#5a5346">Registró: ${esc(ant.docenteNombre)}</span>` : ""}
+                 </div>`;
+               } else { // es un reconocimiento
+                 return `<div style="margin:6px 0;padding:6px;background:#faf6f1;border-left:2px solid #2e5e3f;border-radius:2px">
+                   <b>${ant.fecha}</b> · 🌱 Reconocimiento · Año: ${ant.anoEscolar || "—"}
+                   <br><span style="font-weight:700;color:#2e5e3f">${esc(ant.virtudNombre || "—")}</span>
+                 </div>`;
+               }
+             }).join("")}
+           </div>`
+        : ""
+      }
+      
+      <div style="display:flex;justify-content:space-between;gap:30px;margin-top:44px;font-size:13.5px" class="no-print">
+        <div style="flex:1">
+          ${D.adminLogged && D.gradoActivo
+            ? `<button class="btn" onclick="archivarAntecedentes('${al.id}','${D.periodo}')" style="width:100%;font-size:13px">📦 Archivar período como antecedentes</button>`
+            : ""
+          }
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:30px;margin-top:44px;font-size:13.5px">
+        <div style="flex:1;border-top:1px solid #2b2519;text-align:center;padding-top:4px">Firma del docente</div>
+        <div style="flex:1;border-top:1px solid #2b2519;text-align:center;padding-top:4px">Firma de Dirección</div>
+      </div>
+    </div>
+    <p class="no-print" style="font-size:13px;color:#5a5346;margin-top:12px">Al imprimir se genera solo la hoja del informe, lista para archivar o adjuntar mientras se transcribe la valoración al GEI. Las valoraciones se toman de la pestaña «Informe GEI (curso)» (o de la sugerencia automática si no fueron ajustadas).</p>
+  </section>`;
+}
+
+// ── Guía ──
+function vGuia(){
+  const bloques = ["leve","moderada","grave"].map(g=>`<div class="panel" style="border-left:4px solid ${colorG(g)}">
+    <b style="color:${colorG(g)};text-transform:uppercase;letter-spacing:1px">Falta ${g}</b>
+    <span style="margin-left:8px;font-size:13px;color:#5a5346">${g==="leve"?"= 1 llamado de atención":g==="moderada"?"= 2 llamados + firma en libro":"= 2–3 llamados + firma en libro (en diálogo con el Equipo Directivo)"}</span>
+    <p style="margin:8px 0 0;font-size:14px">${ACCIONES[g]}</p></div>`).join("");
+  return `<section class="card"><h2>Guía rápida del docente</h2>
+    <div class="panel" style="background:#fff4d6;border-color:#c9b06a;border-left:4px solid #8a6d2f">
+      <b style="color:#8a6d2f">📌 Alcance del catálogo de faltas</b>
+      <p style="font-size:13.5px;margin:6px 0 0">El catálogo cargado corresponde al <b>AEC 2026 de Nivel Primario</b> del Colegio FASTA Juan Pablo II (Res. 1949-DGE-22, Anexo II). Los alumnos de Nivel Inicial y Secundario pueden cargarse y organizarse en la app, pero la valoración por gravedad, la equivalencia de llamados y la traducción a los tres ejes de la cultura del cuidado están calibradas para Primaria. Para uso pleno en <b>Secundario</b> corresponde su propio AEC bajo la <b>Res. 1850-DGE-22</b>; en <b>Nivel Inicial</b> la convivencia se evalúa de forma descriptiva, no numérica. Si querés extender el catálogo a los otros niveles, subí sus AEC y armamos los catálogos específicos.</p>
+    </div>
+    ${bloques}
+    <div class="panel"><b style="color:#1d3a5f">Principios del AEC</b>
+      <ul style="font-size:14px;margin:8px 0 0;padding-left:20px">
+        <li>Las medidas tienen carácter esencialmente <b>formativo</b>: toma de conciencia, reparación del daño y crecimiento personal.</li>
+        <li>Escala para el GEI: <b>Muy bueno</b> con 0–4 llamados, <b>Bueno</b> con 5–9, <b>Regular</b> con 10 o más. La situación es <b>reversible</b> con un período sin llamados y acciones reparadoras cumplidas.</li>
+        <li>Aplicación con <b>gradualidad, proporcionalidad y justicia</b>, considerando intencionalidad, reiteración, edad y madurez, contexto, impacto, medios digitales y relaciones asimétricas.</li>
+        <li>Actitud <b>preventiva</b>: crear un clima que favorezca el ejercicio natural de la virtud, desde una relación docente-alumno basada en el conocimiento y el amor.</li>
+      </ul></div></section>`;
+}
+
+// ── Respaldo ──
+function vRespaldo(){
+  return `<section class="card"><h2>Respaldo de datos</h2>
+    <p style="font-size:14.5px">Los datos se guardan en este navegador. Para no perderlos (o pasarlos a otra computadora), exportá un respaldo cada tanto.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="exportar()">Descargar respaldo (.json)</button>
+      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">Restaurar respaldo…
+        <input type="file" accept=".json" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importar(this)"></label>
+      <button class="btnMin" onclick="borrarTodo()">Borrar todos los datos</button>
+    </div></section>`;
+}
+window.exportar = () => {
+  const blob = new Blob([JSON.stringify(D,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "respaldo_convivencia_" + new Date().toISOString().slice(0,10) + ".json";
+  a.click(); URL.revokeObjectURL(a.href);
+};
+window.importar = (input) => {
+  const f = input.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try { const d = JSON.parse(fr.result);
+      if(!d.alumnos || !d.registros) throw 0;
+      D = Object.assign({alumnos:[],registros:[],overrides:{},reparadas:{},periodo:"P1"}, d);
+      guardar(); render(); alert("Respaldo restaurado correctamente.");
+    } catch(e){ alert("El archivo no es un respaldo válido de esta aplicación."); }
+  };
+  fr.readAsText(f);
+};
+window.borrarTodo = () => {
+  if(confirm("¿Borrar TODOS los alumnos y registros? Esta acción no se puede deshacer.")){
+    D = {alumnos:[],registros:[],overrides:{},reparadas:{},periodo:"P1"}; guardar(); render();
+  }
+};
+
+// ─── INICIO CON LOGIN SUPABASE ───
+async function iniciarApp(){
+  // Esperar librería Supabase
+  if (typeof window.supabase === 'undefined') {
+    setTimeout(iniciarApp, 300);
+    return;
+  }
+  try {
+    sb = window.supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      usuarioLog = session.user;
+      modoOnline = true;
+      await cargarDeSupabase();
+      render();
+    } else {
+      mostrarLoginPantalla();
+    }
+  } catch(e){
+    console.error('Error Supabase:', e);
+    // Si falla Supabase, usar solo localStorage
+    modoOnline = false;
+    render();
   }
 }
 
-// ============================================================================
-// ARRANCAR
-// ============================================================================
-window.addEventListener('load', inicializar);
+function mostrarLoginPantalla(){
+  document.body.innerHTML = '<div style="max-width:400px;margin:60px auto;padding:30px;background:#fff;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-family:Segoe UI,sans-serif">' +
+    '<h1 style="color:#1d3a5f;font-size:22px;text-align:center;margin-bottom:8px">Registro de Convivencia</h1>' +
+    '<p style="text-align:center;color:#c9b06a;font-size:13px;margin-bottom:24px">AEC 2026 · Colegio FASTA Juan Pablo II</p>' +
+    '<label style="display:block;font-size:12px;text-transform:uppercase;color:#5a5346;margin-bottom:4px">Email</label>' +
+    '<input id="inEmail" type="email" value="manologuevara2013@icloud.com" style="width:100%;padding:10px;border:1px solid #b8ae95;border-radius:3px;margin-bottom:12px">' +
+    '<label style="display:block;font-size:12px;text-transform:uppercase;color:#5a5346;margin-bottom:4px">Contraseña</label>' +
+    '<input id="inPass" type="password" value="" style="width:100%;padding:10px;border:1px solid #b8ae95;border-radius:3px;margin-bottom:12px">' +
+    '<button onclick="hacerLoginSB()" style="width:100%;padding:12px;background:#1d3a5f;color:#fff;border:none;border-radius:3px;font-weight:700;cursor:pointer;margin-bottom:8px">Ingresar</button>' +
+    '<button onclick="crearCuentaSB()" style="width:100%;padding:12px;background:#2e5e3f;color:#fff;border:none;border-radius:3px;font-weight:700;cursor:pointer;margin-bottom:8px">Crear cuenta nueva</button>' +
+    '<button onclick="modoLocalSB()" style="width:100%;padding:10px;background:transparent;color:#5a5346;border:1px solid #b8ae95;border-radius:3px;cursor:pointer;font-size:13px">Usar sin conexión (solo este dispositivo)</button>' +
+    '<div id="msgLog" style="margin-top:12px;font-size:13px;text-align:center"></div>' +
+    '<div style="margin-top:20px;font-size:11px;color:#8a8069;text-align:center">© 2026 Eduardo H. Guevara · Versión 2026.14 + Supabase</div>' +
+  '</div>';
+}
+
+window.hacerLoginSB = async function(){
+  const email = document.getElementById('inEmail').value.trim();
+  const pass = document.getElementById('inPass').value;
+  if (!email || !pass) { document.getElementById('msgLog').innerHTML = '<span style="color:#a34434">Ingresá email y contraseña</span>'; return; }
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    usuarioLog = data.user;
+    modoOnline = true;
+    location.reload();
+  } catch(e){
+    document.getElementById('msgLog').innerHTML = '<span style="color:#a34434">' + e.message + '</span>';
+  }
+};
+
+window.crearCuentaSB = async function(){
+  const email = document.getElementById('inEmail').value.trim();
+  const pass = document.getElementById('inPass').value;
+  if (!email || pass.length < 6) { document.getElementById('msgLog').innerHTML = '<span style="color:#a34434">Email y clave (mín 6 caracteres)</span>'; return; }
+  try {
+    const { data, error } = await sb.auth.signUp({ email, password: pass });
+    if (error) throw error;
+    document.getElementById('msgLog').innerHTML = '<span style="color:#2e5e3f">✓ Cuenta creada. Ahora tocá Ingresar</span>';
+  } catch(e){
+    document.getElementById('msgLog').innerHTML = '<span style="color:#a34434">' + e.message + '</span>';
+  }
+};
+
+window.modoLocalSB = function(){
+  modoOnline = false;
+  render();
+};
+
+window.cerrarSesionSB = async function(){
+  if (!confirm('¿Cerrar sesión?')) return;
+  if (sb) await sb.auth.signOut();
+  location.reload();
+};
+
+iniciarApp();
 </script>
-
 </body>
 </html>
