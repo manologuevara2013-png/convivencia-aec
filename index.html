@@ -3,456 +3,266 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="author" content="Eduardo H. Guevara">
-  <meta name="copyright" content="© 2026 Eduardo H. Guevara. Todos los derechos reservados.">
-  <title>Registro de Convivencia · AEC 2026 → GEI (Supabase)</title>
+  <title>Registro de Convivencia AEC 2026</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Segoe UI',sans-serif; background:#f5f2ec; color:#2b2519; line-height:1.6; }
-    header { background:#1d3a5f; color:#fdfcf8; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,.15); }
-    h1 { font-size:28px; margin-bottom:4px; letter-spacing:1px; }
-    .sub { font-size:14px; color:#c9b06a; }
-    nav { background:#fff; padding:8px 20px; display:flex; gap:8px; overflow-x:auto; border-bottom:1px solid #e6dfcd; position:sticky; top:0; z-index:100; }
-    nav button { padding:10px 16px; background:transparent; border:none; color:#5a5346; cursor:pointer; font-weight:600; font-size:14px; white-space:nowrap; border-bottom:3px solid transparent; transition:.2s; }
-    nav button.on { color:#1d3a5f; border-bottom-color:#c9b06a; }
-    main { max-width:900px; margin:0 auto; padding:20px; }
-    .card { background:#fff; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,.08); padding:20px; margin-bottom:20px; }
-    .login-panel { max-width:400px; margin:60px auto; padding:40px; background:#fff; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,.12); text-align:center; }
-    .login-panel h2 { color:#1d3a5f; margin-bottom:24px; font-size:24px; }
-    h2 { margin:0 0 14px; font-size:21px; color:#1d3a5f; border-bottom:2px solid #c9b06a; padding-bottom:8px; }
-    label { display:block; font-size:12px; letter-spacing:1.2px; text-transform:uppercase; color:#5a5346; margin:10px 0 4px; font-family:'Trebuchet MS',sans-serif; }
-    input, select, textarea { padding:10px 12px; border:1px solid #b8ae95; border-radius:3px; font-size:15px; background:#fff; color:#2b2519; font-family:inherit; max-width:100%; margin-bottom:12px; width:100%; }
-    input:focus, select:focus, textarea:focus { outline:2px solid #8a6d2f; outline-offset:1px; }
-    .btn { padding:12px 24px; background:#1d3a5f; color:#fdfcf8; border:none; border-radius:3px; font-size:15px; font-weight:700; cursor:pointer; }
-    .btn:hover { background:#0f2342; }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-    .btnMin { padding:4px 10px; background:transparent; color:#a34434; border:1px solid #d8d0bc; border-radius:3px; font-size:12.5px; cursor:pointer; }
-    .msg { padding:12px; margin:12px 0; border-radius:3px; font-size:14px; }
-    .msg.success { background:#eef2ec; color:#2e5e3f; border-left:4px solid #2e5e3f; }
-    .msg.error { background:#f6e3e0; color:#a34434; border-left:4px solid #a34434; }
-    table { width:100%; border-collapse:collapse; font-size:14.5px; }
-    th { text-align:left; padding:8px 10px; background:#1d3a5f; color:#fdfcf8; font-size:12.5px; }
-    td { padding:8px 10px; border-bottom:1px solid #e6dfcd; vertical-align:top; }
-    footer { text-align:center; font-size:12.5px; color:#8a8069; margin-top:40px; padding:20px; }
-    @media (max-width:600px) { header { padding:14px; } h1 { font-size:22px; } nav { padding:0 8px; } main { padding:12px; } .login-panel { margin:40px auto; padding:24px; } }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f2ec; color: #2b2519; }
+    header { background: #1d3a5f; color: #fdfcf8; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #c9b06a; }
+    nav { background: #fff; padding: 10px 20px; display: flex; gap: 10px; overflow-x: auto; border-bottom: 1px solid #e6dfcd; }
+    nav button { padding: 8px 14px; background: transparent; border: none; color: #5a5346; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; border-bottom: 3px solid transparent; }
+    nav button.on { color: #1d3a5f; border-bottom-color: #c9b06a; }
+    main { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .card { background: #fff; padding: 20px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .login-form { max-width: 380px; margin: 40px auto; }
+    h2 { font-size: 20px; color: #1d3a5f; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #c9b06a; padding-bottom: 10px; }
+    label { display: block; font-size: 12px; text-transform: uppercase; color: #5a5346; margin: 12px 0 4px; }
+    input, select { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #b8ae95; border-radius: 3px; font-size: 15px; }
+    input:focus, select:focus { outline: 2px solid #8a6d2f; }
+    button { width: 100%; padding: 12px; background: #1d3a5f; color: #fdfcf8; border: none; border-radius: 3px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #0f2342; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .msg { padding: 10px; margin: 10px 0; border-radius: 3px; font-size: 14px; }
+    .success { background: #eef2ec; color: #2e5e3f; border-left: 4px solid #2e5e3f; }
+    .error { background: #f6e3e0; color: #a34434; border-left: 4px solid #a34434; }
+    .info { background: #f0f4f8; color: #1d3a5f; border-left: 4px solid #1d3a5f; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px; background: #1d3a5f; color: #fdfcf8; }
+    td { padding: 8px; border-bottom: 1px solid #e6dfcd; }
+    footer { text-align: center; font-size: 12px; color: #8a8069; margin-top: 40px; padding: 20px; }
+    .status { font-size: 12px; color: #8a8069; margin-top: 20px; }
   </style>
 </head>
 <body>
 
-<header id="header"></header>
-<nav id="tabs"></nav>
-<main id="main"></main>
-<footer id="footer"></footer>
+<header>
+  <h1>Registro de Convivencia AEC 2026</h1>
+  <div class="sub">Sistema compartido · Colegio FASTA Juan Pablo II</div>
+</header>
 
-<!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- SheetJS para Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- SUPABASE CDN - CARGAR PRIMERO -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
+
+<nav id="navTabs"></nav>
+<main id="contenido"></main>
+<footer id="footer"></footer>
 
 <script>
 // ============================================================================
-// CONFIGURACIÓN SUPABASE
+// CONFIG
 // ============================================================================
-const SUPABASE_URL = 'https://navsfrfgyyixckmincmb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_l_ZokKjDroT6MxMtUsMxpA_nbbIMQ-l';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const URL_SUPABASE = 'https://navsfrfgyyixckmincmb.supabase.co';
+const KEY_SUPABASE = 'sb_publishable_l_ZokKjDroT6MxMtUsMxpA_nbbIMQ-l';
 
-// ============================================================================
-// ESTADO GLOBAL
-// ============================================================================
-let app = {
-  usuario: null,
-  rol: null,
-  nivelActivo: '',
-  gradoActivo: '',
-  periodo: 'P1',
-  anoEscolar: '2026',
-  tab: 'rapido',
-  alumnos: [],
-  docentes: [],
-  registros: [],
-  reconocimientos: [],
-  antecedentes: [],
-  offline: false
-};
-
-// CATÁLOGOS
-const CATALOGO = [
-  {id:'f001', cat:'Presentación personal', texto:'Descuido de la higiene personal', gravedad:'leve', aspecto:'SI', equiv:1},
-  {id:'f002', cat:'Presentación personal', texto:'Uniforme incompleto o sucio', gravedad:'leve', aspecto:'SI', equiv:1},
-  {id:'f003', cat:'Trato respetuoso', texto:'Falta de respeto a directivos, docentes y personal', gravedad:'grave', aspecto:'OT', equiv:3},
-  {id:'f004', cat:'Trato respetuoso', texto:'Agresión física, verbal, psicológica o simbólica; insultos, amenazas, hostigamiento o acoso', gravedad:'grave', aspecto:'OT', equiv:3},
-  {id:'f005', cat:'Trato respetuoso', texto:'Comentarios descalificativos o discriminación', gravedad:'grave', aspecto:'OT', equiv:3},
-  {id:'f006', cat:'Trato respetuoso', texto:'Faltas de respeto a directivos, docentes y personal no docente', gravedad:'moderada', aspecto:'OT', equiv:2},
-  {id:'f007', cat:'Sinceridad', texto:'Mentira, engaño o falsificación de documentos', gravedad:'moderada', aspecto:'OT', equiv:2},
-  {id:'f008', cat:'Sinceridad', texto:'Plagio o copia en trabajos o evaluaciones', gravedad:'moderada', aspecto:'OT', equiv:2},
-  {id:'f009', cat:'Ambiente y orden', texto:'Desorden o falta de limpieza', gravedad:'leve', aspecto:'EN', equiv:1},
-  {id:'f010', cat:'Ambiente y orden', texto:'Daño a bienes de la escuela o de otros', gravedad:'grave', aspecto:'EN', equiv:3},
-  {id:'f011', cat:'Otra no tipificada', texto:'Jugar fuera de tiempo y de lugar — LEVE', gravedad:'leve', aspecto:'SI', equiv:1}
-];
-
-const VIRTUDES = [
-  {id:'v001', nombre:'Responsabilidad', color:'#8a6d2f'},
-  {id:'v002', nombre:'Respeto', color:'#1d3a5f'},
-  {id:'v003', nombre:'Solidaridad', color:'#2e5e3f'},
-  {id:'v004', nombre:'Compañerismo', color:'#c9b06a'},
-  {id:'v005', nombre:'Esfuerzo y perseverancia', color:'#a34434'},
-  {id:'v006', nombre:'Honestidad', color:'#5a5346'}
-];
-
-const PERIODOS = [
-  {id:'P1', nombre:'Primer Período'},
-  {id:'P2', nombre:'Segundo Período'},
-  {id:'P3', nombre:'Calificación Final'}
-];
-
-const NIVELES = ['Inicial', 'Primario', 'Secundario'];
-const GRADOS_PRESET = {
-  'Inicial': ['Sala de 3 años', 'Sala de 4 años', 'Sala de 5 años'],
-  'Primario': ['1º grado', '2º grado', '3º grado', '4º grado', '5º grado', '6º grado', '7º grado'],
-  'Secundario': ['1º año', '2º año', '3º año', '4º año', '5º año']
-};
+let supabase = null;
+let usuario = null;
+let rol = null;
+let alumnos = [];
+let docentes = [];
+let registros = [];
 
 // ============================================================================
-// INIT
+// INICIAR
 // ============================================================================
-async function iniciar() {
-  const { data: { session } } = await supabase.auth.getSession();
+function inicializar() {
+  console.log('Inicializando...');
   
-  if (session) {
-    app.usuario = session.user;
-    await cargarRol();
-    await sincronizar();
-    renderizar();
-  } else {
-    renderizarLogin();
+  // Esperar a que Supabase cargue
+  if (typeof window.supabase === 'undefined') {
+    console.log('Supabase no listo, esperando...');
+    setTimeout(inicializar, 500);
+    return;
   }
   
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      app.usuario = session.user;
-      cargarRol().then(() => {
-        sincronizar();
-        renderizar();
-      });
-    } else {
-      app.usuario = null;
-      renderizarLogin();
-    }
-  });
-}
-
-async function cargarRol() {
-  if (!app.usuario) return;
-  const { data } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('email', app.usuario.email)
-    .single();
-  if (data) app.rol = data.rol;
-}
-
-async function sincronizar() {
-  if (!app.usuario || !app.rol) return;
   try {
-    // Alumnos
-    if (app.rol === 'direccion' || app.rol === 'admin') {
-      const { data } = await supabase.from('alumnos').select('*').eq('activo', true);
-      if (data) app.alumnos = data;
-    }
-    
-    // Docentes
-    const { data: docentes } = await supabase.from('docentes').select('*').eq('activo', true);
-    if (docentes) app.docentes = docentes;
-    
-    // Registros
-    const { data: registros } = await supabase.from('registros').select('*');
-    if (registros) app.registros = registros;
-    
-    // Reconocimientos
-    const { data: reconocimientos } = await supabase.from('reconocimientos').select('*');
-    if (reconocimientos) app.reconocimientos = reconocimientos;
-    
-    app.offline = false;
+    supabase = window.supabase.createClient(URL_SUPABASE, KEY_SUPABASE);
+    console.log('✓ Supabase creado correctamente');
   } catch (e) {
-    console.error('Error sync:', e);
-    app.offline = true;
+    console.error('Error creando Supabase:', e);
+    document.getElementById('contenido').innerHTML = '<div class="card"><h2 style="color:#a34434">Error</h2><p>' + e.message + '</p></div>';
+    return;
+  }
+  
+  verificarSesion();
+}
+
+async function verificarSesion() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      usuario = session.user;
+      cargarDatos();
+      mostrarApp();
+    } else {
+      mostrarLogin();
+    }
+  } catch (e) {
+    console.error('Error verificando sesión:', e);
+    mostrarLogin();
   }
 }
 
 // ============================================================================
 // LOGIN
 // ============================================================================
-async function login() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
+function mostrarLogin() {
+  document.getElementById('navTabs').innerHTML = '';
+  document.getElementById('contenido').innerHTML = 
+    '<div class="login-form">' +
+      '<div class="card">' +
+        '<h2>🔐 Acceso</h2>' +
+        '<label>Email</label>' +
+        '<input id="email" type="email" value="manologuevara2013@icloud.com">' +
+        '<label>Contraseña</label>' +
+        '<input id="pass" type="password" value="direccion">' +
+        '<button onclick="hacerLogin()">Ingresar</button>' +
+        '<div id="msgLogin" class="status"></div>' +
+      '</div>' +
+    '</div>';
   
-  if (!email || !password) {
-    alert('Ingresá email y contraseña');
+  document.getElementById('footer').innerHTML = 
+    '<div style="color:#1d3a5f;font-weight:700">© 2026 Eduardo H. Guevara</div>' +
+    '<div>Colegio FASTA Juan Pablo II</div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 Supabase</div>';
+}
+
+async function hacerLogin() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  
+  if (!email || !pass) {
+    mostrarMsg('error', 'Ingresá email y contraseña');
     return;
   }
   
-  const btn = document.getElementById('loginBtn');
+  const btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Ingresando...';
   
   try {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
+    
+    usuario = data.user;
+    cargarDatos();
+    mostrarApp();
   } catch (e) {
-    alert('Error: ' + e.message);
+    mostrarMsg('error', 'Error: ' + e.message);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Ingresar';
   }
 }
 
-async function logout() {
-  if (!confirm('¿Cerrar sesión?')) return;
-  await supabase.auth.signOut();
-  app.usuario = null;
-  app.rol = null;
-  renderizarLogin();
+// ============================================================================
+// APP
+// ============================================================================
+async function cargarDatos() {
+  try {
+    const { data: a } = await supabase.from('alumnos').select('*').eq('activo', true);
+    const { data: d } = await supabase.from('docentes').select('*').eq('activo', true);
+    const { data: r } = await supabase.from('registros').select('*');
+    
+    alumnos = a || [];
+    docentes = d || [];
+    registros = r || [];
+    
+    console.log('✓ Datos cargados:', alumnos.length, docentes.length, registros.length);
+  } catch (e) {
+    console.error('Error cargando datos:', e);
+  }
 }
 
-async function cambiarContraseña() {
-  const nueva = prompt('Nueva contraseña:');
-  if (!nueva || nueva.length < 6) {
-    alert('Mínimo 6 caracteres');
+function mostrarApp() {
+  document.getElementById('navTabs').innerHTML = 
+    '<button class="on" onclick="irTab(\'inicio\')" style="text-align:left;padding:8px 12px">🏠 Inicio</button>' +
+    '<button onclick="irTab(\'alumnos\')" style="text-align:left;padding:8px 12px">👥 Alumnos</button>' +
+    '<button onclick="irTab(\'docentes\')" style="text-align:left;padding:8px 12px">👨‍🏫 Docentes</button>' +
+    '<button onclick="cerrarSesion()" style="margin-left:auto;padding:8px 12px;background:#a34434;color:#fdfcf8;border:none;border-radius:3px;cursor:pointer">Salir</button>';
+  
+  document.getElementById('contenido').innerHTML = 
+    '<div class="card">' +
+      '<h2>Bienvenido</h2>' +
+      '<p>Email: <strong>' + usuario.email + '</strong></p>' +
+      '<p style="margin-top:12px;color:#8a8069">Alumnos: <strong>' + alumnos.length + '</strong><br>' +
+      'Docentes: <strong>' + docentes.length + '</strong><br>' +
+      'Registros: <strong>' + registros.length + '</strong></p>' +
+      '<div class="success msg" style="margin-top:20px">✓ Conectado a Supabase</div>' +
+    '</div>';
+  
+  document.getElementById('footer').innerHTML = 
+    '<div style="color:#1d3a5f;font-weight:700">© 2026 Eduardo H. Guevara</div>' +
+    '<div>Colegio FASTA Juan Pablo II</div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 Supabase · ✓ Conectado</div>';
+}
+
+function irTab(tab) {
+  const btns = document.querySelectorAll('nav button');
+  btns.forEach(b => b.classList.remove('on'));
+  event.target.classList.add('on');
+  
+  if (tab === 'inicio') mostrarInicio();
+  else if (tab === 'alumnos') mostrarAlumnos();
+  else if (tab === 'docentes') mostrarDocentes();
+}
+
+function mostrarInicio() {
+  document.getElementById('contenido').innerHTML = 
+    '<div class="card"><h2>📊 Dashboard</h2>' +
+    '<p>Alumnos: <strong>' + alumnos.length + '</strong></p>' +
+    '<p>Docentes: <strong>' + docentes.length + '</strong></p>' +
+    '<p>Registros: <strong>' + registros.length + '</strong></p>' +
+    '</div>';
+}
+
+function mostrarAlumnos() {
+  if (alumnos.length === 0) {
+    document.getElementById('contenido').innerHTML = '<div class="card"><h2>Alumnos</h2><p style="color:#8a8069">Sin datos</p></div>';
     return;
   }
   
-  const { error } = await supabase.auth.updateUser({ password: nueva });
-  if (error) {
-    alert('Error: ' + error.message);
-  } else {
-    alert('✓ Contraseña cambiada');
+  let html = '<div class="card"><h2>Alumnos</h2><table><thead><tr><th>Nombre</th><th>Nivel</th><th>Grado</th></tr></thead><tbody>';
+  alumnos.forEach(a => {
+    html += '<tr><td>' + a.nombre + '</td><td>' + a.nivel + '</td><td>' + a.grado + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('contenido').innerHTML = html;
+}
+
+function mostrarDocentes() {
+  if (docentes.length === 0) {
+    document.getElementById('contenido').innerHTML = '<div class="card"><h2>Docentes</h2><p style="color:#8a8069">Sin datos</p></div>';
+    return;
+  }
+  
+  let html = '<div class="card"><h2>Docentes</h2><table><thead><tr><th>Nombre</th><th>Rol</th></tr></thead><tbody>';
+  docentes.forEach(d => {
+    html += '<tr><td>' + d.nombre + '</td><td>' + d.rol + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('contenido').innerHTML = html;
+}
+
+async function cerrarSesion() {
+  await supabase.auth.signOut();
+  usuario = null;
+  mostrarLogin();
+}
+
+function mostrarMsg(tipo, texto) {
+  const div = document.getElementById('msgLogin');
+  if (div) {
+    div.innerHTML = '<div class="' + tipo + ' msg">' + texto + '</div>';
+    setTimeout(() => { div.innerHTML = ''; }, 5000);
   }
 }
 
 // ============================================================================
-// RENDERIZAR LOGIN
+// ARRANCAR
 // ============================================================================
-function renderizarLogin() {
-  document.getElementById('header').innerHTML = `
-    <h1>Registro de Convivencia</h1>
-    <div class="sub">Acceso seguro · Colegio FASTA Juan Pablo II</div>
-  `;
-  
-  document.getElementById('tabs').innerHTML = '';
-  document.getElementById('main').innerHTML = `
-    <div class="login-panel">
-      <h2>🔐 Acceso</h2>
-      <p style="color:#5a5346;margin-bottom:20px">Sistema compartido con sincronización en tiempo real</p>
-      
-      <label>Email</label>
-      <input id="loginEmail" type="email" placeholder="tu@email.com">
-      
-      <label>Contraseña</label>
-      <input id="loginPassword" type="password" placeholder="tu contraseña">
-      
-      <button id="loginBtn" class="btn" onclick="login()" style="width:100%">Ingresar</button>
-      
-      <div style="font-size:12px;color:#8a8069;margin-top:20px;line-height:1.8">
-        <p><strong>Demo Dirección:</strong></p>
-        <p>Email: manologuevara2013@icloud.com</p>
-        <p>Clave: direccion</p>
-      </div>
-    </div>
-  `;
-  
-  document.getElementById('footer').innerHTML = `
-    <div style="color:#1d3a5f;font-weight:700;font-size:13px">© 2026 Eduardo H. Guevara</div>
-    <div>Registro de Convivencia AEC 2026 · Supabase Edition</div>
-    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 · Base de datos compartida</div>
-  `;
-}
-
-// ============================================================================
-// RENDERIZAR APP
-// ============================================================================
-function renderizar() {
-  // Header
-  document.getElementById('header').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:start">
-      <div>
-        <h1>Registro de Convivencia</h1>
-        <div class="sub">GEI · Res. 1949-DGE-22, Anexo II</div>
-      </div>
-      <div style="text-align:right;font-size:13px">
-        <div style="color:#c9b06a">📧 ${app.usuario.email}</div>
-        <div style="color:#fdfcf8;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:1px;margin-top:4px">${app.rol}</div>
-        ${app.rol === 'direccion' ? `<button onclick="cambiarContraseña()" style="background:#c9b06a;color:#1d3a5f;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;margin-top:6px;font-size:11px">Cambiar clave</button>` : ''}
-        <button onclick="logout()" style="background:#c9b06a;color:#1d3a5f;border:none;padding:6px 12px;border-radius:3px;cursor:pointer;margin-top:8px;font-size:12px;font-weight:700;display:block">Salir</button>
-      </div>
-    </div>
-  `;
-  
-  // Tabs
-  const tabs = [
-    ['rapido','⚡ Modo rápido'],
-    ['registro','Registrar llamado'],
-    ['reconocer','🌱 Reconocer virtud'],
-    ['grilla','Grilla del curso'],
-    ['alumnos','Alumnos'],
-    ['docentes','Docentes'],
-    ['respaldo','Respaldo']
-  ];
-  
-  document.getElementById('tabs').innerHTML = tabs.map(([id,n]) => 
-    `<button class="${app.tab===id?'on':''}" onclick="irTab('${id}')">${n}</button>`
-  ).join('');
-  
-  // Main content
-  const M = document.getElementById('main');
-  if (app.tab === 'rapido') M.innerHTML = vRapido();
-  else if (app.tab === 'registro') M.innerHTML = vRegistro();
-  else if (app.tab === 'reconocer') M.innerHTML = vReconocer();
-  else if (app.tab === 'grilla') M.innerHTML = vGrilla();
-  else if (app.tab === 'alumnos') M.innerHTML = vAlumnos();
-  else if (app.tab === 'docentes') M.innerHTML = vDocentes();
-  else if (app.tab === 'respaldo') M.innerHTML = vRespaldo();
-  
-  // Footer
-  document.getElementById('footer').innerHTML = `
-    <div style="color:#1d3a5f;font-weight:700;font-size:13px">© 2026 Eduardo H. Guevara</div>
-    <div>Colegio FASTA Juan Pablo II · Nivel Primario</div>
-    <div style="margin-top:8px;font-size:11px;color:#c9b06a">Versión 3.0 · Base de datos Supabase (en tiempo real)</div>
-    ${app.offline ? '<div style="color:#a34434;font-weight:700">⚠ Modo offline</div>' : '<div style="color:#2e5e3f">✓ Conectado</div>'}
-  `;
-}
-
-function irTab(id) {
-  app.tab = id;
-  renderizar();
-}
-
-// ============================================================================
-// TABS (STUBS - implementar gradualmente)
-// ============================================================================
-function vRapido() {
-  return `<div class="card">
-    <h2>⚡ Modo Rápido</h2>
-    <p style="color:#8a8069">Interfaz simplificada para registros rápidos desde el aula.</p>
-    <p style="margin-top:12px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Próximamente</p>
-  </div>`;
-}
-
-function vRegistro() {
-  return `<div class="card">
-    <h2>Registrar Llamado</h2>
-    <p style="color:#8a8069">Registro completo de faltas con observaciones y acciones reparadoras.</p>
-    <p style="margin-top:12px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Próximamente</p>
-  </div>`;
-}
-
-function vReconocer() {
-  return `<div class="card">
-    <h2>🌱 Reconocer Virtud</h2>
-    <p style="color:#8a8069">Proyecto Sembrando Virtudes - Reconocimientos de alumnos destacados.</p>
-    <p style="margin-top:12px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Próximamente</p>
-  </div>`;
-}
-
-function vGrilla() {
-  return `<div class="card">
-    <h2>Grilla del Curso</h2>
-    <p style="color:#8a8069">Vista visual de llamados por alumno con colores por tramo (MB/B/R).</p>
-    <p style="margin-top:12px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Próximamente</p>
-  </div>`;
-}
-
-function vAlumnos() {
-  return `<div class="card">
-    <h2>Alumnos</h2>
-    <p style="color:#8a8069">Gestión de lista de alumnos por nivel y grado.</p>
-    
-    <label>Nivel</label>
-    <select id="selNivel" onchange="renderizar()">
-      <option value="">Todos</option>
-      ${NIVELES.map(n => `<option value="${n}" ${app.nivelActivo===n?'selected':''}>${n}</option>`).join('')}
-    </select>
-    
-    <p style="margin-top:12px;color:#8a8069;font-size:13px">Total de alumnos en Supabase: <strong>${app.alumnos.length}</strong></p>
-    
-    ${app.alumnos.length > 0 ? `
-      <table style="margin-top:12px">
-        <thead><tr><th>Nombre</th><th>Nivel</th><th>Grado</th></tr></thead>
-        <tbody>
-          ${app.alumnos.map(a => `<tr>
-            <td>${a.nombre}</td>
-            <td>${a.nivel}</td>
-            <td>${a.grado}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    ` : `<p style="margin-top:12px;color:#8a8069;font-style:italic">Sin alumnos cargados aún.</p>`}
-    
-    <p style="margin-top:20px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Lista en tiempo real desde Supabase</p>
-  </div>`;
-}
-
-function vDocentes() {
-  return `<div class="card">
-    <h2>Docentes</h2>
-    <p style="color:#8a8069">Personal docente del colegio.</p>
-    
-    <p style="margin-top:12px;color:#8a8069;font-size:13px">Total de docentes en Supabase: <strong>${app.docentes.length}</strong></p>
-    
-    ${app.docentes.length > 0 ? `
-      <table style="margin-top:12px">
-        <thead><tr><th>Nombre</th><th>Rol</th></tr></thead>
-        <tbody>
-          ${app.docentes.map(d => `<tr>
-            <td>${d.nombre}</td>
-            <td>${d.rol || '—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    ` : `<p style="margin-top:12px;color:#8a8069;font-style:italic">Sin docentes cargados aún.</p>`}
-    
-    <p style="margin-top:20px;color:#2e5e3f;font-weight:700">✓ Funcionalidad: Lista en tiempo real desde Supabase</p>
-  </div>`;
-}
-
-function vRespaldo() {
-  return `<div class="card">
-    <h2>Respaldo</h2>
-    <p style="color:#8a8069">Los datos se guardan automáticamente en Supabase. No necesitas exportar/importar.</p>
-    
-    <div style="background:#eef5f8;padding:12px;border-radius:3px;margin-top:12px">
-      <p style="color:#1d3a5f;font-weight:700">✓ Base de datos centralizada</p>
-      <p style="color:#1d3a5f;font-size:13px;margin-top:6px">Todos los docentes tienen acceso a los mismos datos en tiempo real. Las copias de seguridad se realizan automáticamente en Supabase.</p>
-    </div>
-    
-    <button class="btn" onclick="exportarJSON()" style="margin-top:16px">📥 Descargar backup JSON</button>
-  </div>`;
-}
-
-async function exportarJSON() {
-  const datos = {
-    fecha: new Date().toISOString(),
-    usuario: app.usuario.email,
-    rol: app.rol,
-    alumnos: app.alumnos,
-    docentes: app.docentes,
-    registros: app.registros,
-    reconocimientos: app.reconocimientos
-  };
-  
-  const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `convivencia_backup_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ============================================================================
-// INICIAR
-// ============================================================================
-iniciar();
+window.addEventListener('load', inicializar);
 </script>
 
 </body>
