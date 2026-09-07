@@ -248,12 +248,13 @@ async function sincronizarASupabase(){
   if (!sb || !usuarioLog) return;
   try {
     // Guardar TODOS los datos como un blob JSON en tabla "app_state"
-    await sb.from('app_state').upsert({
+    const { error } = await sb.from('app_state').upsert({
       user_id: usuarioLog.id,
-      data: D,
+      data: datosParaGuardar(),
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
-    console.log('✓ Sincronizado a Supabase');
+    if (error) console.error('Error upsert:', error);
+    else console.log('✓ Sincronizado a Supabase');
   } catch(e){ console.error('Error sync:', e); }
 }
 
@@ -262,12 +263,25 @@ async function cargarDeSupabase(){
   try {
     const { data, error } = await sb.from('app_state').select('data').eq('user_id', usuarioLog.id).maybeSingle();
     if (data && data.data) {
+      // Guardar el usuarioActual antes de sobrescribir
+      const usuarioActualBackup = D.usuarioActual;
       D = Object.assign(D, data.data);
+      // Restaurar usuarioActual (nunca guardarlo en la BD)
+      if (usuarioActualBackup) D.usuarioActual = usuarioActualBackup;
       console.log('✓ Datos cargados de Supabase');
     } else {
       console.log('ℹ Sin datos previos en Supabase (primer uso)');
     }
   } catch(e){ console.error('Error carga:', e); }
+}
+
+// No guardar usuarioActual/usuariosSistema/auditoriaSistema en la BD (son locales)
+function datosParaGuardar(){
+  const copia = Object.assign({}, D);
+  delete copia.usuarioActual;
+  delete copia.usuariosSistema;
+  delete copia.auditoriaSistema;
+  return copia;
 }
 const uid = () => Math.random().toString(36).slice(2,9);
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
