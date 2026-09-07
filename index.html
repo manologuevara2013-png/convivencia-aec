@@ -1876,7 +1876,7 @@ function vAuditoria(){
   const lista = D.auditoriaSistema || [];
   const rows = lista.map(a => {
     const d = a.datos_nuevo || {};
-    const fecha = a.created_at ? new Date(a.created_at).toLocaleString('es-AR') : '—';
+    const fecha = a.fecha ? new Date(a.fecha).toLocaleString('es-AR') : '—';
     return `
       <tr>
         <td style="font-size:12px">${esc(fecha)}</td>
@@ -1910,7 +1910,7 @@ function vAuditoria(){
 window.cargarAuditoriaSistema = async function(){
   if (!sb) return;
   try {
-    const { data } = await sb.from('auditoria').select('*').order('created_at', {ascending:false}).limit(200);
+    const { data } = await sb.from('auditoria').select('*').order('fecha', {ascending:false}).limit(200);
     D.auditoriaSistema = data || [];
     render();
   } catch(e){ console.error('Error carga auditoría:', e); }
@@ -2005,6 +2005,7 @@ async function registrarAuditoria(accion, detalle){
       usuario_id: usuarioLog.id,
       operacion: accion,
       tabla: 'app_state',
+      fecha: new Date().toISOString(),
       datos_nuevo: { 
         accion: accion,
         detalle: detalle,
