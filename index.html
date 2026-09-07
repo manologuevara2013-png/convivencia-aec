@@ -1723,15 +1723,31 @@ window.crearNuevoUsuario = async function(){
   
   msg.innerHTML = '<span style="color:#8a8069">Creando usuario...</span>';
   
+  // GUARDAR SESIÓN ACTUAL antes del signUp (que nos deslogueará)
+  const { data: sesionActual } = await sb.auth.getSession();
+  const tokenActual = sesionActual?.session;
+  
   try {
-    // 1) Crear cuenta en Supabase Auth (signup)
-    const { data: authData, error: authError } = await sb.auth.signUp({ email, password: pass });
+    // 1) Crear cuenta en Supabase Auth
+    const { data: authData, error: authError } = await sb.auth.signUp({ 
+      email, 
+      password: pass,
+      options: { emailRedirectTo: undefined }
+    });
     if (authError) throw authError;
     
-    // 2) Insertar en tabla usuarios (metadata)
     const nuevoId = authData.user?.id;
     if (!nuevoId) throw new Error('No se pudo obtener ID del nuevo usuario');
     
+    // 2) RESTAURAR TU SESIÓN inmediatamente (antes de insertar)
+    if (tokenActual) {
+      await sb.auth.setSession({
+        access_token: tokenActual.access_token,
+        refresh_token: tokenActual.refresh_token
+      });
+    }
+    
+    // 3) Insertar en tabla usuarios (metadata + rol)
     const { error: insError } = await sb.from('usuarios').insert({
       id: nuevoId,
       email: email,
@@ -1743,19 +1759,69 @@ window.crearNuevoUsuario = async function(){
     });
     if (insError) throw insError;
     
-    // 3) Auditar
-    await registrarAuditoria('CREAR_USUARIO', `${rol}: ${email} (${nombre})`);
+    // 4) Si es docente, AUTO-AGREGAR a D.docentes y asignar titularidad del grado
+    if (rol === 'docente') {
+      // Agregar a lista de docentes si no existe
+      const yaExiste = (D.docentes || []).some(d => d.email === email);
+      if (!yaExiste) {
+        const docId = 'doc_' + Date.now();
+        D.docentes = D.docentes || [];
+        D.docentes.push({
+          id: docId,
+          nombre: nombre,
+          rol: 'Maestra/o ' + grado,
+          email: email
+        });
+        
+        // Asignar como titular del grado
+        D.titularidades = D.titularidades || [];
+        // Remover titular anterior de ese grado si había
+        D.titularidades = D.titularidades.filter(t => !(t.nivel === nivel && t.grado === grado));
+        D.titularidades.push({
+          id: 'tit_' + Date.now(),
+          nivel: nivel,
+          grado: grado,
+          docenteId: docId
+        });
+      }
+    } else {
+      // Si es dirección/admin, también agregar a docentes pero con rol correspondiente
+      const yaExiste = (D.docentes || []).some(d => d.email === email);
+      if (!yaExiste) {
+        D.docentes = D.docentes || [];
+        D.docentes.push({
+          id: 'doc_' + Date.now(),
+          nombre: nombre,
+          rol: rol === 'direccion' ? 'Dirección' : 'Administrador',
+          email: email
+        });
+      }
+    }
     
-    msg.innerHTML = '<span style="color:#2e5e3f">✓ Usuario creado. Compartí las credenciales con el docente.</span>';
+    // 5) Guardar cambios y auditar
+    guardar();
+    await registrarAuditoria('CREAR_USUARIO', `${rol}: ${email} (${nombre})${grado ? ' - ' + nivel + ' ' + grado : ''}`);
+    
+    msg.innerHTML = '<span style="color:#2e5e3f">✓ Usuario creado y agregado a docentes. Compartí email/clave con el docente.</span>';
     document.getElementById('nuEmail').value = '';
     document.getElementById('nuPass').value = '';
     document.getElementById('nuNombre').value = '';
-    document.getElementById('nuGrado').value = '';
+    if (document.getElementById('nuGrado')) document.getElementById('nuGrado').value = '';
     
-    // Refrescar lista
+    // Refrescar
     await cargarUsuariosSistema();
+    render();
   } catch(e){
     msg.innerHTML = '<span style="color:#a34434">Error: ' + e.message + '</span>';
+    // Intentar restaurar sesión de todos modos
+    if (tokenActual) {
+      try {
+        await sb.auth.setSession({
+          access_token: tokenActual.access_token,
+          refresh_token: tokenActual.refresh_token
+        });
+      } catch(e2){}
+    }
   }
 };
 
