@@ -398,14 +398,16 @@ function render(){
   const sp = document.getElementById("selPeriodo");
   sp.innerHTML = PERIODOS.map(p=>`<option value="${p.id}" ${p.id===D.periodo?"selected":""}>${esc(p.nombre)}</option>`).join("");
   
-  // Si es docente, bloquear selectores (solo puede ver SU grado)
+  // Si es docente: bloquear SOLO el selector "Docente que registra" (siempre es él mismo)
+  // Nivel y grado quedan LIBRES para poder navegar y registrar llamados a alumnos de otros grados
   if (D.usuarioActual?.rol === 'docente') {
-    sn.disabled = true;
-    sg.disabled = true;
-    sn.style.opacity = '0.6';
-    sg.style.opacity = '0.6';
-    sn.title = 'Solo tu grado asignado';
-    sg.title = 'Solo tu grado asignado';
+    const sd = document.getElementById("selDocente");
+    if (sd) {
+      sd.disabled = true;
+      sd.style.opacity = '0.7';
+      sd.style.cursor = 'not-allowed';
+      sd.title = 'Como docente, siempre registrás como vos mismo';
+    }
   }
   // pestañas según rol
   const rolActual = D.usuarioActual?.rol || 'admin_local';
@@ -420,11 +422,11 @@ function render(){
     ["gei","Informe GEI (curso)"],
     ["informe","Informe por alumno"],
     ["alumnos","Alumnos"],
+    ["personal","Personal docente"],
   ];
   
-  // Solo dirección/admin ven estos tabs
+  // Solo dirección/admin ven estos tabs adicionales
   if (esDireccion) {
-    tabs.push(["personal","Personal docente"]);
     tabs.push(["usuarios","👥 Usuarios"]);
     tabs.push(["auditoria","📜 Auditoría"]);
     tabs.push(["respaldo","Respaldo"]);
@@ -436,7 +438,7 @@ function render(){
   const M = document.getElementById("main");
   if (tab==="rapido") M.innerHTML = vRapido();
   else if (tab==="reconocer") M.innerHTML = vReconocer();
-  else if (tab==="personal" && esDireccion) M.innerHTML = vPersonal();
+  else if (tab==="personal") M.innerHTML = vPersonal();
   else if (tab==="alumnos") M.innerHTML = vAlumnos();
   else if (tab==="registro") M.innerHTML = vRegistro();
   else if (tab==="grilla") M.innerHTML = vGrilla();
@@ -449,7 +451,15 @@ function render(){
   else M.innerHTML = vRapido();
 }
 window.irTab = t => { tab=t; render(); };
-document.getElementById("selDocente").addEventListener("change", e => { D.docenteActivo=e.target.value; guardar(); render(); });
+document.getElementById("selDocente").addEventListener("change", e => { 
+  // Si es docente, no puede cambiar el "Docente que registra"
+  if (D.usuarioActual?.rol === 'docente') {
+    e.preventDefault();
+    render();
+    return;
+  }
+  D.docenteActivo=e.target.value; guardar(); render(); 
+});
 document.getElementById("selPeriodo").addEventListener("change", e => { D.periodo=e.target.value; guardar(); render(); });
 document.getElementById("selNivel").addEventListener("change", e => { D.nivelActivo=e.target.value; D.gradoActivo=""; guardar(); render(); });
 document.getElementById("selGrado").addEventListener("change", e => { D.gradoActivo=e.target.value; guardar(); render(); });
@@ -698,101 +708,45 @@ window.registrarRapido = () => {
 
 // ── Personal docente ──
 function vPersonal(){
+  const esSoloLectura = D.usuarioActual?.rol === 'docente';
   const lista = D.docentes.length
-    ? "<div style='overflow-x:auto'><table><thead><tr><th>Docente</th><th>Rol / materia</th><th>Registros</th><th></th></tr></thead><tbody>" +
+    ? "<div style='overflow-x:auto'><table><thead><tr><th>Docente</th><th>Email</th><th>Rol / materia</th><th>Registros</th>" + (esSoloLectura ? "" : "<th></th>") + "</tr></thead><tbody>" +
       [...D.docentes].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(d=>{
         const nLlamados = D.registros.filter(r=>r.docenteId===d.id).length;
         const nRecon = D.reconocimientos.filter(r=>r.docenteId===d.id).length;
         const titulados = D.titularidades.filter(t=>t.docenteId===d.id);
+        const inputRol = esSoloLectura 
+          ? `<span>${esc(d.rol||"—")}</span>` 
+          : `<input value="${esc(d.rol||"")}" placeholder="Ej.: Maestra 4º grado, Ed. Física, Directora" onchange="D.docentes.find(x=>x.id==='${d.id}').rol=this.value.trim();guardar()">`;
+        const btnQuitar = esSoloLectura ? "" : `<td><button class="btnMin" onclick="quitarDocente('${d.id}')">Quitar</button></td>`;
         return `<tr>
           <td>${esc(d.nombre)}${titulados.length?`<div style="font-size:12px;color:#2e5e3f;margin-top:2px">Titular: ${titulados.map(t=>esc(t.grado)).join(", ")}</div>`:""}</td>
-          <td><input value="${esc(d.rol||"")}" placeholder="Ej.: Maestra 4º grado, Ed. Física, Directora" onchange="D.docentes.find(x=>x.id==='${d.id}').rol=this.value.trim();guardar()"></td>
+          <td style="font-size:12px;color:#5a5346">${esc(d.email||"—")}</td>
+          <td>${inputRol}</td>
           <td style="font-size:13px">${nLlamados} llamados · ${nRecon} recon.</td>
-          <td><button class="btnMin" onclick="quitarDocente('${d.id}')">Quitar</button></td>
+          ${btnQuitar}
         </tr>`;
       }).join("") + "</tbody></table></div>"
-    : "<p class='vacio'>Todavía no hay docentes cargados. Usá alguno de los métodos de arriba.</p>";
+    : "<p class='vacio'>Todavía no hay docentes cargados. Cargalos desde la pestaña «👥 Usuarios».</p>";
 
-  // Titularidades por grado
-  const gradosConAlumnos = [];
-  D.alumnos.forEach(a => {
-    if(a.nivel && a.grado){
-      const clave = `${a.nivel}|${a.grado}`;
-      if(!gradosConAlumnos.some(g=>g.clave===clave)) gradosConAlumnos.push({clave, nivel:a.nivel, grado:a.grado});
-    }
-  });
-  gradosConAlumnos.sort((a,b)=>a.clave.localeCompare(b.clave));
-
-  const seccionTitulares = gradosConAlumnos.length === 0
-    ? "<p class='vacio'>Primero cargá alumnos con nivel y grado para poder asignar docentes titulares.</p>"
-    : `<div style='overflow-x:auto'><table><thead><tr><th>Nivel</th><th>Grado</th><th>Alumnos</th><th>Docente titular</th></tr></thead><tbody>
-      ${gradosConAlumnos.map(g=>{
-        const t = D.titularidades.find(x=>x.nivel===g.nivel && x.grado===g.grado);
-        const cant = D.alumnos.filter(a=>a.nivel===g.nivel && a.grado===g.grado).length;
-        return `<tr>
-          <td>${esc(g.nivel)}</td>
-          <td><b>${esc(g.grado)}</b></td>
-          <td style="text-align:center">${cant}</td>
-          <td><select onchange="asignarTitular('${esc(g.nivel)}','${esc(g.grado)}',this.value)" style="min-width:220px">
-            <option value="">— Sin titular asignado —</option>
-            ${D.docentes.map(d=>`<option value="${d.id}" ${t && t.docenteId===d.id?"selected":""}>${esc(d.nombre)}</option>`).join("")}
-          </select></td>
-        </tr>`;
-      }).join("")}
-    </tbody></table></div>`;
+  const encabezado = esSoloLectura
+    ? `<div style="background:#f0f5ec;border-left:4px solid #2e5e3f;padding:12px;border-radius:4px;margin-bottom:16px">
+        <b style="color:#1d3a5f">ℹ Vista de personal docente</b>
+        <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Podés ver la lista completa de docentes. La edición y gestión solo la puede hacer Dirección/Administración.</p>
+      </div>`
+    : `<div style="background:#f0f5ec;border-left:4px solid #2e5e3f;padding:12px;border-radius:4px;margin-bottom:16px">
+        <b style="color:#1d3a5f">ℹ Cómo cargar docentes</b>
+        <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Los docentes se cargan desde la pestaña <b>«👥 Usuarios»</b> con su email, contraseña y grado asignado. Al crearlos ahí, aparecen automáticamente en esta lista y como titulares de su grado.</p>
+      </div>`;
 
   return `<section class="card"><h2>Personal docente</h2>
-    <p style="font-size:14px;color:#5a5346;margin-top:0">Cargá aquí a todos los docentes y directivos que van a usar la app. Cualquier docente cargado puede registrar llamados o reconocimientos sobre cualquier alumno — solo tiene que elegir su nombre en el selector «Docente que registra» de arriba antes de cada carga.</p>
-
-    <!-- MÉTODO 1: EXCEL -->
-    <div class="panel" style="border-left:4px solid #5c7350;background:#f0f5ec">
-      <b style="color:#1d3a5f;font-size:15px">📊 Método 1 · Importar el listado de docentes desde Excel</b>
-      <p style="font-size:13.5px;margin:6px 0 10px">Cargá una planilla con los docentes de la escuela.</p>
-      <label class="btn" style="display:inline-block;cursor:pointer;position:relative;overflow:hidden">📂 Elegir archivo Excel de docentes…
-        <input type="file" accept=".xlsx,.xls,.csv" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer" onchange="importarDocentes(this)"></label>
-
-      <details style="margin-top:10px;font-size:13px;color:#5a5346">
-        <summary style="cursor:pointer;color:#1d3a5f">¿Cómo tiene que estar armado el Excel?</summary>
-        <p style="margin:8px 0 4px">Una planilla simple con los nombres de los docentes. Se reconocen estos formatos:</p>
-        <ul style="margin:4px 0;padding-left:20px">
-          <li>Una columna «Apellido y Nombre» (o «Nombre completo»)</li>
-          <li>Dos columnas: «Apellido» + «Nombre» separadas</li>
-          <li>Columna adicional opcional: «Rol», «Cargo» o «Materia»</li>
-        </ul>
-        <button class="btnMin" style="margin-top:6px" onclick="descargarPlantillaDocentes()">📥 Descargar plantilla modelo</button>
-      </details>
-    </div>
-
-    <!-- MÉTODO 2: MANUAL -->
-    <div class="panel">
-      <b style="color:#1d3a5f;font-size:15px">✍ Método 2 · Agregar docentes manualmente</b>
-      <div class="grid2" style="margin-top:8px">
-        <div><label class="lbl">Apellido, Nombre</label>
-          <input id="inDocNombre" placeholder="Fernández, María" onkeydown="if(event.key==='Enter')agregarDocente()"></div>
-        <div><label class="lbl">Rol / materia (opcional)</label>
-          <input id="inDocRol" placeholder="Ej.: Maestra 4º grado, Ed. Física" onkeydown="if(event.key==='Enter')agregarDocente()"></div>
-      </div>
-      <button class="btn" style="margin-top:8px" onclick="agregarDocente()">Agregar docente</button>
-
-      <details style="margin-top:10px">
-        <summary style="cursor:pointer;color:#1d3a5f;font-size:13.5px">Pegar lista completa de docentes</summary>
-        <p style="font-size:13px;color:#5a5346;margin:6px 0">Un docente por línea. Podés incluir el rol separado con un guión.</p>
-        <textarea id="inDocMasivo" rows="6" style="width:100%;margin-top:4px" placeholder="Fernández, María — Maestra 4º grado&#10;Gómez, Pablo — Ed. Física&#10;López, Ana — Directora&#10;…"></textarea>
-        <button class="btn" style="margin-top:8px" onclick="agregarDocentesLista()">Agregar todos</button>
-      </details>
-    </div>
-
-    <!-- LISTA ACTUAL -->
-    <h2 style="margin-top:24px">Docentes cargados (${D.docentes.length})</h2>
+    ${encabezado}
+    
+    <h2 style="margin-top:16px">Docentes cargados (${D.docentes.length})</h2>
+    ${esSoloLectura ? '' : '<p style="font-size:14px;color:#5a5346;margin-top:0">En esta pantalla podés ver la lista, editar el rol/materia de cada docente y quitarlos si es necesario. Para crear nuevos docentes, andá a la pestaña «👥 Usuarios».</p>'}
     ${lista}
-
-    <!-- TITULARIDADES -->
-    <h2 style="margin-top:24px">Docentes titulares por grado <span style="font-size:13px;font-weight:400;color:#5a5346">(dato informativo)</span></h2>
-    <p style="font-size:14px;color:#5a5346;margin-top:0">Podés indicar quién es el maestro/a titular de cada grado. Aparecerá en el informe individual del alumno. No limita quién puede cargar registros: cualquier docente puede hacerlo.</p>
-    ${seccionTitulares}
   </section>`;
 }
-
 window.descargarPlantillaDocentes = () => {
   const wb = XLSX.utils.book_new();
   const datos = [
@@ -924,6 +878,18 @@ function vAlumnos(){
         }).join("");
       }).join("");
 
+  // Si es docente, mostrar solo lectura de alumnos (sin herramientas de carga/edición)
+  if (D.usuarioActual?.rol === 'docente') {
+    return `<section class="card"><h2>Alumnos</h2>
+      <div style="background:#f0f5ec;border-left:4px solid #2e5e3f;padding:12px;border-radius:4px;margin-bottom:16px">
+        <b style="color:#1d3a5f">ℹ Vista de alumnos</b>
+        <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Como docente podés ver todos los alumnos y registrar llamados o reconocimientos a cualquiera. La carga y edición de alumnos solo la puede hacer Dirección/Administración.</p>
+      </div>
+      <h3 style="margin-top:16px;color:#1d3a5f">Total: ${D.alumnos.length} alumnos</h3>
+      ${listaAgrupada}
+    </section>`;
+  }
+  
   return `<section class="card"><h2>Alumnos</h2>
     <p style="font-size:14px;color:#5a5346;margin-top:0">Cargá los alumnos de a un grado por vez. Podés hacerlo importando la lista del grado desde Excel (más rápido), o agregándolos manualmente uno por uno.</p>
 
@@ -1980,13 +1946,27 @@ function aplicarPermisosRol(){
   if (!D.usuarioActual) return;
   const rol = D.usuarioActual.rol;
   
-  // DOCENTE: forzar filtros a su grado asignado, y activar como docente actual
+  // DOCENTE: por defecto ve SU grado, pero puede cambiarlo
   if (rol === 'docente') {
-    D.nivelActivo = D.usuarioActual.nivel || '';
-    D.gradoActivo = D.usuarioActual.grado || '';
-    // Buscar docente en la lista para setear docenteActivo
+    // Solo la PRIMERA vez del login, forzar a su grado
+    if (!D.usuarioActual.yaInicializado) {
+      if (D.usuarioActual.nivel && D.usuarioActual.grado) {
+        D.nivelActivo = D.usuarioActual.nivel;
+        D.gradoActivo = D.usuarioActual.grado;
+      } else {
+        // Docente especial: sin grado fijo, ve todos
+        D.nivelActivo = '';
+        D.gradoActivo = '';
+      }
+      D.usuarioActual.yaInicializado = true;
+    }
+    
+    // Buscar docente en la lista para setear docenteActivo (SIEMPRE él mismo)
     const doc = (D.docentes || []).find(d => d.email === D.usuarioActual.email);
-    if (doc) D.docenteActivo = doc.id;
+    if (doc) {
+      D.docenteActivo = doc.id;
+    }
+    
     // Docente NO tiene admin
     D.adminLogged = false;
   }
