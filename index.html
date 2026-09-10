@@ -1650,9 +1650,68 @@ function vUsuarios(){
         </table>
       </div>
       <button class="btnMin" onclick="cargarUsuariosSistema()" style="margin-top:12px">🔄 Refrescar lista</button>
+      <button class="btnMin" onclick="importarDocentesDesdeUsuarios()" style="margin-top:12px;background:#2e5e3f;color:#fff;border:none">📥 Importar docentes de Supabase a Personal</button>
     </div>
   `;
 }
+
+window.importarDocentesDesdeUsuarios = async function(){
+  if (!sb) return alert('Sin conexión');
+  try {
+    const { data: usuarios } = await sb.from('usuarios').select('*').eq('activo', true);
+    if (!usuarios || usuarios.length === 0) {
+      alert('No hay usuarios en Supabase para importar');
+      return;
+    }
+    
+    let agregados = 0;
+    let actualizados = 0;
+    
+    D.docentes = D.docentes || [];
+    D.titularidades = D.titularidades || [];
+    
+    usuarios.forEach(u => {
+      const yaExiste = D.docentes.find(d => d.email === u.email);
+      
+      if (!yaExiste) {
+        // Agregar nuevo
+        const docId = 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+        const rolMostrar = u.rol === 'direccion' ? 'Dirección' : 
+                          u.rol === 'admin' ? 'Administrador' : 
+                          (u.grado ? 'Maestra/o ' + u.grado : 'Docente');
+        
+        D.docentes.push({
+          id: docId,
+          nombre: u.nombre || u.email,
+          rol: rolMostrar,
+          email: u.email
+        });
+        
+        // Si es docente titular, asignar titularidad
+        if (u.rol === 'docente' && u.nivel && u.grado) {
+          // Remover titular anterior de ese grado si había
+          D.titularidades = D.titularidades.filter(t => !(t.nivel === u.nivel && t.grado === u.grado));
+          D.titularidades.push({
+            id: 'tit_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+            nivel: u.nivel,
+            grado: u.grado,
+            docenteId: docId
+          });
+        }
+        agregados++;
+      } else {
+        // Actualizar rol si es necesario
+        actualizados++;
+      }
+    });
+    
+    guardar();
+    render();
+    alert(`✓ Importación completa\\n\\nDocentes agregados: ${agregados}\\nYa existentes: ${actualizados}\\n\\nAhora aparecen en Personal docente y en el selector "Docente que registra".`);
+  } catch(e){
+    alert('Error: ' + e.message);
+  }
+};
 
 window.mostrarCamposRol = function(){
   const rol = document.getElementById('nuRol').value;
@@ -1981,17 +2040,26 @@ function aplicarPermisosRol(){
 async function registrarAuditoria(accion, detalle){
   if (!sb || !usuarioLog) return;
   try {
+    // Formato para "timestamp without time zone" (sin Z, sin milisegundos)
+    const ahora = new Date();
+    const fechaSinTZ = ahora.getFullYear() + '-' + 
+      String(ahora.getMonth()+1).padStart(2,'0') + '-' + 
+      String(ahora.getDate()).padStart(2,'0') + ' ' +
+      String(ahora.getHours()).padStart(2,'0') + ':' +
+      String(ahora.getMinutes()).padStart(2,'0') + ':' +
+      String(ahora.getSeconds()).padStart(2,'0');
+    
     await sb.from('auditoria').insert({
       usuario_id: usuarioLog.id,
       operacion: accion,
       tabla: 'app_state',
-      fecha: new Date().toISOString(),
+      fecha: fechaSinTZ,
       datos_nuevo: { 
         accion: accion,
         detalle: detalle,
         usuario_email: D.usuarioActual?.email,
         usuario_rol: D.usuarioActual?.rol,
-        fecha: new Date().toISOString()
+        fecha: fechaSinTZ
       }
     });
   } catch(e){ console.error('Error auditoría:', e); }
