@@ -362,11 +362,24 @@ function render(){
   const adminPanel = document.getElementById("adminPanel");
   if (D.usuarioActual && modoOnline){
     const rol = D.usuarioActual.rol;
-    const colorRol = (rol==='direccion'||rol==='admin') ? '#a34434' : '#1d3a5f';
+    let colorRol, iconoRol, textoRol;
+    if (rol === 'desarrollador') {
+      colorRol = '#7b1fa2';
+      iconoRol = '🔧';
+      textoRol = 'DESARROLLADOR';
+    } else if (rol === 'direccion' || rol === 'admin') {
+      colorRol = '#a34434';
+      iconoRol = '🏛️';
+      textoRol = rol.toUpperCase();
+    } else {
+      colorRol = '#1d3a5f';
+      iconoRol = '👨‍🏫';
+      textoRol = 'DOCENTE';
+    }
     const infoExtra = rol==='docente' ? ` · ${esc(D.usuarioActual.nivel||'')} ${esc(D.usuarioActual.grado||'')}` : '';
     adminPanel.innerHTML = `
       <div style="font-size:12px;color:#5a5346;line-height:1.4">
-        <div style="color:${colorRol};font-weight:700;text-transform:uppercase">${esc(rol)}${esc(infoExtra)}</div>
+        <div style="color:${colorRol};font-weight:700;text-transform:uppercase">${iconoRol} ${esc(textoRol)}${esc(infoExtra)}</div>
         <div style="font-size:11px">${esc(D.usuarioActual.nombre || D.usuarioActual.email)}</div>
       </div>
       <button class="btnMin" onclick="cerrarSesionSB()" style="font-size:12px;background:#a34434;color:#fff;border:none;margin-left:8px">Cerrar sesión</button>
@@ -411,7 +424,8 @@ function render(){
   }
   // pestañas según rol
   const rolActual = D.usuarioActual?.rol || 'admin_local';
-  const esDireccion = rolActual === 'direccion' || rolActual === 'admin' || rolActual === 'admin_local';
+  const esDesarrollador = rolActual === 'desarrollador';
+  const esDireccion = rolActual === 'direccion' || rolActual === 'admin' || rolActual === 'admin_local' || esDesarrollador;
   const esDocente = rolActual === 'docente';
   
   let tabs = [
@@ -1658,9 +1672,10 @@ function vUsuarios(){
 window.importarDocentesDesdeUsuarios = async function(){
   if (!sb) return alert('Sin conexión');
   try {
-    const { data: usuarios } = await sb.from('usuarios').select('*').eq('activo', true);
+    // Solo importar usuarios con rol "docente" (no admin/direccion/desarrollador)
+    const { data: usuarios } = await sb.from('usuarios').select('*').eq('activo', true).eq('rol', 'docente');
     if (!usuarios || usuarios.length === 0) {
-      alert('No hay usuarios en Supabase para importar');
+      alert('No hay docentes cargados en Supabase para importar.');
       return;
     }
     
@@ -1676,9 +1691,7 @@ window.importarDocentesDesdeUsuarios = async function(){
       if (!yaExiste) {
         // Agregar nuevo
         const docId = 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
-        const rolMostrar = u.rol === 'direccion' ? 'Dirección' : 
-                          u.rol === 'admin' ? 'Administrador' : 
-                          (u.grado ? 'Maestra/o ' + u.grado : 'Docente');
+        const rolMostrar = u.grado ? 'Maestra/o ' + u.grado : 'Docente especial';
         
         D.docentes.push({
           id: docId,
@@ -1687,8 +1700,8 @@ window.importarDocentesDesdeUsuarios = async function(){
           email: u.email
         });
         
-        // Si es docente titular, asignar titularidad
-        if (u.rol === 'docente' && u.nivel && u.grado) {
+        // Si es titular, asignar titularidad
+        if (u.nivel && u.grado) {
           // Remover titular anterior de ese grado si había
           D.titularidades = D.titularidades.filter(t => !(t.nivel === u.nivel && t.grado === u.grado));
           D.titularidades.push({
@@ -1700,14 +1713,13 @@ window.importarDocentesDesdeUsuarios = async function(){
         }
         agregados++;
       } else {
-        // Actualizar rol si es necesario
         actualizados++;
       }
     });
     
     guardar();
     render();
-    alert(`✓ Importación completa\\n\\nDocentes agregados: ${agregados}\\nYa existentes: ${actualizados}\\n\\nAhora aparecen en Personal docente y en el selector "Docente que registra".`);
+    alert(`✓ Importación completa\\n\\nDocentes agregados: ${agregados}\\nYa existentes: ${actualizados}\\n\\n(Usuarios con rol Dirección/Admin/Desarrollador no se agregan a la lista de docentes)`);
   } catch(e){
     alert('Error: ' + e.message);
   }
@@ -1794,34 +1806,25 @@ window.crearNuevoUsuario = async function(){
         D.docentes.push({
           id: docId,
           nombre: nombre,
-          rol: 'Maestra/o ' + grado,
+          rol: grado ? 'Maestra/o ' + grado : 'Docente especial',
           email: email
         });
         
-        // Asignar como titular del grado
-        D.titularidades = D.titularidades || [];
-        // Remover titular anterior de ese grado si había
-        D.titularidades = D.titularidades.filter(t => !(t.nivel === nivel && t.grado === grado));
-        D.titularidades.push({
-          id: 'tit_' + Date.now(),
-          nivel: nivel,
-          grado: grado,
-          docenteId: docId
-        });
-      }
-    } else {
-      // Si es dirección/admin, también agregar a docentes pero con rol correspondiente
-      const yaExiste = (D.docentes || []).some(d => d.email === email);
-      if (!yaExiste) {
-        D.docentes = D.docentes || [];
-        D.docentes.push({
-          id: 'doc_' + Date.now(),
-          nombre: nombre,
-          rol: rol === 'direccion' ? 'Dirección' : 'Administrador',
-          email: email
-        });
+        // Asignar como titular del grado (solo si tiene grado)
+        if (nivel && grado) {
+          D.titularidades = D.titularidades || [];
+          D.titularidades = D.titularidades.filter(t => !(t.nivel === nivel && t.grado === grado));
+          D.titularidades.push({
+            id: 'tit_' + Date.now(),
+            nivel: nivel,
+            grado: grado,
+            docenteId: docId
+          });
+        }
       }
     }
+    // NOTA: Roles admin/direccion/desarrollador NO se agregan a lista de docentes
+    // (esos no aparecen en selector "Docente que registra" ni en Personal docente)
     
     // 5) Guardar cambios y auditar
     guardar();
