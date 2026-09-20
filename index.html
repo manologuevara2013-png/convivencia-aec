@@ -1671,7 +1671,7 @@ window.borrarTodo = () => {
 
 // TAB: Gestión de Usuarios (solo dirección/admin)
 function vUsuarios(){
-  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin')) {
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin' && D.usuarioActual.rol !== 'desarrollador')) {
     return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden gestionar usuarios.</p></div>';
   }
   
@@ -1687,6 +1687,7 @@ function vUsuarios(){
       <td>
         ${u.id !== usuarioLog?.id ? `
           <button class="btnMin" onclick="cambiarRolUsuario('${u.id}')">Editar</button>
+          <button class="btnMin" onclick="resetearClaveUsuario('${u.id}','${esc(u.email)}')" style="color:#8a6d2f">🔑 Clave</button>
           <button class="btnMin" onclick="borrarUsuarioSistema('${u.id}','${esc(u.email)}')" style="color:#a34434">Borrar</button>
         ` : '<em style="color:#8a8069">tú mismo</em>'}
       </td>
@@ -1824,6 +1825,13 @@ window.mostrarCamposRol = function(){
 };
 
 window.crearNuevoUsuario = async function(){
+  // SEGURIDAD: solo dirección/admin/desarrollador pueden crear usuarios
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden crear usuarios.');
+    return;
+  }
+  
   if (!sb) return alert('Sin conexión a Supabase');
   const email = document.getElementById('nuEmail').value.trim();
   const pass = document.getElementById('nuPass').value;
@@ -1948,6 +1956,13 @@ window.cargarUsuariosSistema = async function(){
 };
 
 window.cambiarRolUsuario = async function(id){
+  // SEGURIDAD: solo dirección/admin/desarrollador pueden cambiar roles
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden cambiar roles.');
+    return;
+  }
+  
   const u = (D.usuariosSistema || []).find(x=>x.id===id);
   if (!u) return;
   const nuevoRol = prompt('Cambiar rol de ' + u.email + '\\n\\nRoles válidos: direccion, admin, docente', u.rol);
@@ -1971,18 +1986,85 @@ window.cambiarRolUsuario = async function(id){
 };
 
 window.borrarUsuarioSistema = async function(id, email){
-  if (!confirm('¿Borrar el usuario ' + email + '?\\n\\nSe eliminará solo del sistema de roles. La cuenta de acceso queda en Supabase Auth.')) return;
+  // SEGURIDAD: solo dirección/admin/desarrollador pueden borrar usuarios
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden borrar usuarios.');
+    return;
+  }
+  
+  if (!confirm('¿Borrar el usuario ' + email + '?\n\nEsto lo elimina del sistema de roles y de la lista de docentes.\n(La cuenta de login queda inactivada, pero se puede reactivar).')) return;
   try {
-    await sb.from('usuarios').delete().eq('id', id);
+    // 1) Marcar como inactivo en tabla usuarios (no borrar por FK)
+    await sb.from('usuarios').update({activo: false}).eq('id', id);
+    
+    // 2) Quitar de la lista local de docentes si estaba
+    const docLocal = (D.docentes || []).find(d => d.email === email);
+    if (docLocal) {
+      D.docentes = D.docentes.filter(d => d.id !== docLocal.id);
+      D.titularidades = (D.titularidades || []).filter(t => t.docenteId !== docLocal.id);
+      guardar();
+    }
+    
     await registrarAuditoria('BORRAR_USUARIO', email);
     alert('✓ Usuario eliminado del sistema');
     cargarUsuariosSistema();
+    render();
   } catch(e){ alert('Error: ' + e.message); }
 };
 
+window.resetearClaveUsuario = async function(id, email){
+  // SEGURIDAD: solo dirección/admin/desarrollador pueden cambiar claves de otros
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden cambiar claves de otros usuarios.');
+    return;
+  }
+  
+  const nueva = prompt('Nueva contraseña para ' + email + ' (mínimo 6 caracteres):');
+  if (!nueva) return;
+  if (nueva.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+  
+  if (!confirm('¿Cambiar la contraseña de ' + email + ' a "' + nueva + '"?\n\nDeberás avisarle al docente su nueva clave.')) return;
+  
+  // Este cambio se hace mediante SQL directo (Supabase JS no permite cambiar clave de otro usuario)
+  // Alternativa: mostrar instrucciones para hacerlo desde el dashboard
+  const sqlCommand = `UPDATE auth.users SET encrypted_password = crypt('${nueva}', gen_salt('bf')), updated_at = NOW() WHERE email = '${email}';`;
+  
+  const mensaje = 'Para cambiar la contraseña, ejecutá este SQL en Supabase (SQL Editor):\n\n' + sqlCommand + '\n\n¿Copiar al portapapeles?';
+  if (confirm(mensaje)) {
+    try {
+      await navigator.clipboard.writeText(sqlCommand);
+      alert('✓ SQL copiado. Pegalo en Supabase → SQL Editor → RUN');
+    } catch(e) {
+      alert('SQL:\n\n' + sqlCommand);
+    }
+  }
+};
+
+// ─── REALTIME: escuchar cambios en tabla alumnos ───
+let canalAlumnos = null;
+function suscribirseARealtime(){
+  if (!sb || canalAlumnos) return;
+  
+  canalAlumnos = sb.channel('alumnos-realtime')
+    .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'alumnos' },
+        async (payload) => {
+          console.log('⚡ Cambio en alumnos:', payload.eventType);
+          // Recargar todos los alumnos y refrescar vista
+          await cargarAlumnosDeSupabase();
+          render();
+        }
+    )
+    .subscribe((status) => {
+      console.log('📡 Realtime status:', status);
+    });
+}
+
 // TAB: Auditoría (solo dirección/admin)
 function vAuditoria(){
-  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin')) {
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin' && D.usuarioActual.rol !== 'desarrollador')) {
     return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden ver el historial de auditoría.</p></div>';
   }
   
@@ -2044,11 +2126,14 @@ async function iniciarApp(){
       await cargarRolUsuario();
       await cargarDeSupabase();
       aplicarPermisosRol();
-      // Cargar usuarios y auditoría en segundo plano si es dirección/admin
-      if (D.usuarioActual?.rol === 'direccion' || D.usuarioActual?.rol === 'admin') {
+      // Cargar usuarios y auditoría en segundo plano si es dirección/admin/desarrollador
+      const rolUA = D.usuarioActual?.rol;
+      if (rolUA === 'direccion' || rolUA === 'admin' || rolUA === 'desarrollador') {
         cargarUsuariosSistema();
         cargarAuditoriaSistema();
       }
+      // ⚡ Suscribirse a cambios en tiempo real de la tabla alumnos
+      suscribirseARealtime();
       render();
     } else {
       mostrarLoginPantalla();
