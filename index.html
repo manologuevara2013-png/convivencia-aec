@@ -387,6 +387,11 @@ function resumenAlumno(id){
 
 // ── Render ──
 function render(){
+  // Aviso período cerrado (visible arriba)
+  const cierreKey = D.anoEscolar + '_' + D.periodo;
+  const periodoCerrado = D.periodosCerrados && D.periodosCerrados[cierreKey];
+  const periodoNombre = PERIODOS.find(p=>p.id===D.periodo)?.nombre || D.periodo;
+  
   // Panel administrativo
   const adminPanel = document.getElementById("adminPanel");
   if (D.usuarioActual && modoOnline){
@@ -471,6 +476,7 @@ function render(){
   // Solo dirección/admin ven estos tabs adicionales
   if (esDireccion) {
     tabs.push(["usuarios","👥 Usuarios"]);
+    tabs.push(["cierre","🔒 Cierre de Período"]);
     tabs.push(["auditoria","📜 Auditoría"]);
     tabs.push(["respaldo","Respaldo"]);
   }
@@ -479,15 +485,21 @@ function render(){
   
   document.getElementById("tabs").innerHTML = tabs.map(([id,n])=>`<button class="${tab===id?"on":""}" onclick="irTab('${id}')">${n}</button>`).join("");
   const M = document.getElementById("main");
-  if (tab==="rapido") M.innerHTML = vRapido();
-  else if (tab==="reconocer") M.innerHTML = vReconocer();
+  const bannerCerrado = periodoCerrado 
+    ? `<div style="background:#a34434;color:#fff;padding:12px 16px;border-radius:4px;margin-bottom:14px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:20px">🔒</span><span>Período <b>${esc(periodoNombre)} ${esc(D.anoEscolar)}</b> CERRADO por ${esc(periodoCerrado.usuarioNombre||'Dirección')} — no se pueden agregar nuevos registros ni reconocimientos. Los informes siguen disponibles.</span></div>`
+    : '';
+  const tabsConBanner = (contenido) => bannerCerrado + contenido;
+  
+  if (tab==="rapido") M.innerHTML = tabsConBanner(vRapido());
+  else if (tab==="reconocer") M.innerHTML = tabsConBanner(vReconocer());
   else if (tab==="personal") M.innerHTML = vPersonal();
   else if (tab==="alumnos") M.innerHTML = vAlumnos();
-  else if (tab==="registro") M.innerHTML = vRegistro();
+  else if (tab==="registro") M.innerHTML = tabsConBanner(vRegistro());
   else if (tab==="grilla") M.innerHTML = vGrilla();
   else if (tab==="gei") M.innerHTML = vGEI();
   else if (tab==="informe") M.innerHTML = vInforme();
   else if (tab==="usuarios" && esDireccion) M.innerHTML = vUsuarios();
+  else if (tab==="cierre" && esDireccion) M.innerHTML = vCierrePeriodo();
   else if (tab==="auditoria" && esDireccion) M.innerHTML = vAuditoria();
   else if (tab==="guia") M.innerHTML = vGuia();
   else if (esDireccion) M.innerHTML = vRespaldo();
@@ -574,6 +586,12 @@ function vReconocer(){
 }
 
 window.registrarReconocimiento = () => {
+  // Verificar si el período está cerrado
+  const cierreKey = D.anoEscolar + '_' + D.periodo;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos reconocimientos. Solo Dirección puede reabrirlo.');
+    return;
+  }
   const v = VIRTUDES.find(x=>x.id===formRecon.virtudId);
   const al = D.alumnos.find(x=>x.id===formRecon.alumnoId);
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
@@ -638,6 +656,7 @@ window.imprimirNota = (reconId) => {
 // ── Modo rápido (pensado para el celular en el aula) ──
 let rapidoAlumno = "";
 let rapidoFalta = "";
+let rapidoFecha = new Date().toISOString().slice(0,10);
 
 function ultimosAlumnos(n){
   const ids = [];
@@ -727,19 +746,31 @@ function vRapido(){
       <div><b>${esc(al.nombre)}</b><div style="font-size:12.5px;color:#c9b06a">${r.llamados} llamado${r.llamados===1?"":"s"} · ${r.tramo==="regular"?"REGULAR":r.tramo==="bueno"?"BUENO":"MUY BUENO"}</div></div>
       <button class="chip" style="background:#fdfcf8;color:#1d3a5f" onclick="rapidoAlumno='';rapidoFalta='';render()">Cambiar alumno</button>
     </div>
+    <div style="background:#eef2f7;border-left:4px solid #1d3a5f;padding:8px 12px;border-radius:3px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:12px;color:#1d3a5f;font-weight:700;text-transform:uppercase">📅 Fecha:</label>
+      <input type="date" value="${rapidoFecha}" max="${new Date().toISOString().slice(0,10)}" onchange="rapidoFecha=this.value;render()" style="padding:4px 8px;border:1px solid #b8ae95;border-radius:3px;font-size:13px">
+      <button class="btnMin" onclick="rapidoFecha=new Date().toISOString().slice(0,10);render()">Hoy</button>
+      <span style="font-size:11px;color:${rapidoFecha === new Date().toISOString().slice(0,10) ? '#2e5e3f' : '#a34434'}">${rapidoFecha === new Date().toISOString().slice(0,10) ? "✓ Hoy" : "⚠ Fecha anterior"}</span>
+    </div>
     <h3 style="font-size:16px;color:#1d3a5f;margin:4px 0 12px">¿Qué falta al AEC observaste?</h3>
     ${chipsFaltas}${faltaSel}${confirmar}
   </section>`;
 }
 
 window.registrarRapido = () => {
+  // Verificar si el período está cerrado
+  const cierreKey = D.anoEscolar + '_' + D.periodo;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos registros. Solo Dirección puede reabrirlo.');
+    return;
+  }
   const falta = CATALOGO.find(f=>f.id===rapidoFalta);
   const al = D.alumnos.find(a=>a.id===rapidoAlumno);
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
   if(!falta || !al) return;
   const equiv = EQUIV[falta.gravedad];
   D.registros.push({id:uid(), alumnoId:al.id, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
-    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:new Date().toISOString().slice(0,10),
+    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha: rapidoFecha,
     periodo:D.periodo, anoEscolar:D.anoEscolar, obs:"", reparadora:"", firmaLibro:falta.gravedad!=="leve",
     docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
   guardar();
@@ -1328,6 +1359,14 @@ function vRegistro(){
       ${cats.map(c=>`<optgroup label="${esc(c)}">${CATALOGO.filter(f=>f.cat===c).map(f=>`<option value="${f.id}" ${form.faltaId===f.id?"selected":""}>${esc(f.texto)} — ${f.gravedad.toUpperCase()}</option>`).join("")}</optgroup>`).join("")}
     </select>
     ${panelFalta}
+    <div class="panel" style="background:#eef2f7;border-left:4px solid #1d3a5f;margin-bottom:12px">
+      <label class="lbl" style="color:#1d3a5f"><b>📅 Fecha del llamado</b></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="date" id="inFechaRegistro" value="${form.fecha}" max="${new Date().toISOString().slice(0,10)}" onchange="form.fecha=this.value;render()" style="padding:6px 10px;border:1px solid #b8ae95;border-radius:3px;font-size:14px">
+        <button class="btnMin" onclick="form.fecha=new Date().toISOString().slice(0,10);render()">Hoy</button>
+        <span style="font-size:12px;color:#5a5346">${form.fecha === new Date().toISOString().slice(0,10) ? "✓ Fecha de hoy" : "⚠ Registrando con fecha anterior: <b>" + form.fecha + "</b>"}</span>
+      </div>
+    </div>
     <div class="grid2">
       <div><label class="lbl">Observaciones (contexto, intencionalidad, reiteración…)</label>
         <textarea rows="3" style="width:100%" onchange="form.obs=this.value">${esc(form.obs)}</textarea></div>
@@ -1339,6 +1378,12 @@ function vRegistro(){
   </section>`;
 }
 window.registrar = () => {
+  // Verificar si el período está cerrado
+  const cierreKey = D.anoEscolar + '_' + D.periodo;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos registros. Solo Dirección puede reabrirlo desde el tab "🔒 Cierre de Período".');
+    return;
+  }
   const falta = CATALOGO.find(f=>f.id===form.faltaId);
   if(!form.alumnoId || !falta) return;
   const equiv = form.equiv ?? EQUIV[falta.gravedad];
@@ -2061,6 +2106,127 @@ function suscribirseARealtime(){
       console.log('📡 Realtime status:', status);
     });
 }
+
+// TAB: Cierre de Período (solo dirección/admin/desarrollador)
+function vCierrePeriodo(){
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin' && D.usuarioActual.rol !== 'desarrollador')) {
+    return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden cerrar períodos.</p></div>';
+  }
+  
+  D.periodosCerrados = D.periodosCerrados || {};
+  const anos = ['2026', '2027', '2028'];
+  const anosDisp = anos.filter(a => a >= D.anoEscolar || Object.keys(D.periodosCerrados).some(k => k.startsWith(a)));
+  if (!anosDisp.includes(D.anoEscolar)) anosDisp.push(D.anoEscolar);
+  
+  let filas = '';
+  anosDisp.sort().reverse().forEach(ano => {
+    PERIODOS.forEach(p => {
+      const key = ano + '_' + p.id;
+      const cierre = D.periodosCerrados[key];
+      const cantReg = D.registros.filter(r => r.anoEscolar === ano && r.periodo === p.id).length;
+      const cantRecon = D.reconocimientos.filter(r => r.anoEscolar === ano && r.periodo === p.id).length;
+      
+      filas += `<tr style="${cierre ? 'background:#fdecec' : ''}">
+        <td>${ano}</td>
+        <td><b>${esc(p.nombre)}</b></td>
+        <td>${cantReg}</td>
+        <td>${cantRecon}</td>
+        <td>${cierre 
+          ? `<div><span style="color:#a34434;font-weight:700">🔒 CERRADO</span><div style="font-size:11px;color:#5a5346;margin-top:2px">Por: ${esc(cierre.usuarioNombre || cierre.usuarioEmail)}<br>Fecha: ${new Date(cierre.fecha).toLocaleString('es-AR')}</div></div>`
+          : '<span style="color:#2e5e3f;font-weight:700">✓ ABIERTO</span>'}</td>
+        <td>${cierre 
+          ? `<button class="btnMin" style="background:#2e5e3f;color:#fff;border:none" onclick="reabrirPeriodo('${ano}','${p.id}','${esc(p.nombre)}')">🔓 Reabrir</button>`
+          : `<button class="btnMin" style="background:#a34434;color:#fff;border:none" onclick="cerrarPeriodo('${ano}','${p.id}','${esc(p.nombre)}')">🔒 Cerrar</button>`}
+        </td>
+      </tr>`;
+    });
+  });
+  
+  return `<section class="card">
+    <h2>🔒 Cierre de Períodos</h2>
+    <div style="background:#fdecec;border-left:4px solid #a34434;padding:12px;border-radius:4px;margin-bottom:16px">
+      <b style="color:#a34434">⚠ Acción de responsabilidad institucional</b>
+      <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Al <b>cerrar un período</b>, los docentes ya no podrán agregar nuevos registros ni reconocimientos en ese período/año. Los datos quedan "congelados" para preservar la integridad institucional. Esta acción queda registrada en la auditoría con tu nombre y fecha.</p>
+      <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Solo Dirección/Administración puede <b>reabrir</b> un período cerrado.</p>
+    </div>
+    
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Año Escolar</th>
+            <th>Período</th>
+            <th>Llamados</th>
+            <th>Reconocimientos</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+    
+    <div style="background:#eef2f7;border-left:4px solid #1d3a5f;padding:12px;border-radius:4px;margin-top:16px">
+      <b style="color:#1d3a5f">ℹ ¿Cómo funciona?</b>
+      <ul style="font-size:13.5px;margin:6px 0 0 20px;color:#5a5346">
+        <li>Un período <b>abierto</b> permite a docentes registrar llamados y reconocimientos normalmente.</li>
+        <li>Un período <b>cerrado</b> bloquea nuevas cargas. Los datos existentes quedan visibles pero no editables.</li>
+        <li>Los informes GEI se pueden generar tanto en períodos abiertos como cerrados.</li>
+        <li>Cerrar un período NO borra los datos: quedan como registro histórico.</li>
+      </ul>
+    </div>
+  </section>`;
+}
+
+window.cerrarPeriodo = async function(ano, periodoId, periodoNombre){
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden cerrar períodos.');
+    return;
+  }
+  
+  const cantReg = D.registros.filter(r => r.anoEscolar === ano && r.periodo === periodoId).length;
+  const cantRecon = D.reconocimientos.filter(r => r.anoEscolar === ano && r.periodo === periodoId).length;
+  
+  if (!confirm(`¿Cerrar el período "${periodoNombre}" del año ${ano}?\n\nSe bloquearán ${cantReg} llamados y ${cantRecon} reconocimientos. Los docentes NO podrán agregar más registros a este período.\n\nSolo Dirección puede reabrirlo después.`)) return;
+  
+  const razon = prompt('Motivo del cierre (opcional):', 'Cierre de período según calendario escolar');
+  
+  D.periodosCerrados = D.periodosCerrados || {};
+  D.periodosCerrados[ano + '_' + periodoId] = {
+    fecha: new Date().toISOString(),
+    usuarioEmail: D.usuarioActual.email,
+    usuarioNombre: D.usuarioActual.nombre,
+    razon: razon || 'Sin motivo especificado'
+  };
+  
+  await registrarAuditoria('CERRAR_PERIODO', `${periodoNombre} ${ano} - ${cantReg} llamados y ${cantRecon} reconocimientos. Motivo: ${razon || 'sin especificar'}`);
+  guardar();
+  render();
+  alert('✓ Período cerrado correctamente.');
+};
+
+window.reabrirPeriodo = async function(ano, periodoId, periodoNombre){
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso. Solo Dirección/Admin pueden reabrir períodos.');
+    return;
+  }
+  
+  if (!confirm(`¿Reabrir el período "${periodoNombre}" del año ${ano}?\n\nLos docentes podrán volver a agregar registros y reconocimientos.\n\nEsta acción queda registrada en la auditoría.`)) return;
+  
+  const razon = prompt('Motivo de la reapertura:', '');
+  if (razon === null) return;
+  
+  D.periodosCerrados = D.periodosCerrados || {};
+  const cierrePrevio = D.periodosCerrados[ano + '_' + periodoId];
+  delete D.periodosCerrados[ano + '_' + periodoId];
+  
+  await registrarAuditoria('REABRIR_PERIODO', `${periodoNombre} ${ano}. Motivo: ${razon || 'sin especificar'}. Cierre previo por: ${cierrePrevio?.usuarioNombre || 'desconocido'}`);
+  guardar();
+  render();
+  alert('✓ Período reabierto correctamente.');
+};
 
 // TAB: Auditoría (solo dirección/admin)
 function vAuditoria(){
