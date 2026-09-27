@@ -227,7 +227,53 @@ let modoOnline = false;
 // Intentar cargar de localStorage primero (fallback)
 try { const raw = localStorage.getItem(KEY); if (raw) D = Object.assign(D, JSON.parse(raw)); } catch(e){}
 let tab = "rapido";
-let form = { alumnoId:"", faltaId:"", fecha: new Date().toISOString().slice(0,10), obs:"", reparadora:"", equiv:null, ok:"" };
+let form = { alumnoId:"", faltaId:"", fecha: new Date().toISOString().slice(0,10), obs:"", reparadora:"", equiv:null, gravedadOverride:null, ok:"" };
+
+// ─── HELPERS PARA PERÍODOS POR FECHA ───
+
+// Rangos de fecha por defecto (Dirección puede cambiarlos)
+function rangosPorDefecto(ano) {
+  const y = parseInt(ano);
+  return {
+    'P1': { desde: `${y}-03-01`, hasta: `${y}-06-30`, nombre: 'Primer Período' },
+    'P2': { desde: `${y}-07-01`, hasta: `${y}-09-15`, nombre: 'Segundo Período' },
+    'P3': { desde: `${y}-09-16`, hasta: `${y}-11-30`, nombre: 'Calificación Final' },
+    'P4': { desde: `${y}-12-01`, hasta: `${y}-12-22`, nombre: 'Intensificación' },
+    'P5': { desde: `${y+1}-02-01`, hasta: `${y+1}-02-28`, nombre: 'Acreditación' },
+  };
+}
+
+// Obtener los rangos guardados o los por defecto
+function obtenerRangosPeriodos(ano) {
+  D.rangosPeriodos = D.rangosPeriodos || {};
+  if (!D.rangosPeriodos[ano]) {
+    D.rangosPeriodos[ano] = rangosPorDefecto(ano);
+  }
+  return D.rangosPeriodos[ano];
+}
+
+// Detectar en qué período cae una fecha (retorna id o null)
+function detectarPeriodoPorFecha(fechaStr, ano) {
+  const rangos = obtenerRangosPeriodos(ano);
+  for (const pid of Object.keys(rangos)) {
+    const r = rangos[pid];
+    if (fechaStr >= r.desde && fechaStr <= r.hasta) {
+      return pid;
+    }
+  }
+  return null; // fuera de todos los rangos
+}
+
+// Obtener el año escolar que corresponde a una fecha
+function detectarAnoEscolar(fechaStr) {
+  const [ano, mes] = fechaStr.split('-');
+  const m = parseInt(mes);
+  // Acreditación se ejecuta en febrero del año siguiente al ciclo lectivo
+  if (m === 1 || m === 2) {
+    return String(parseInt(ano) - 1);
+  }
+  return ano;
+}
 let abierto = null;
 let rapidoOk = "";
 
@@ -261,20 +307,134 @@ async function sincronizarASupabase(){
 async function cargarDeSupabase(){
   if (!sb || !usuarioLog) return;
   try {
-    // 1) Cargar el JSON app_state (docentes, registros, etc.)
+    // 1) Cargar el JSON app_state (docentes, config, etc.)
     const { data, error } = await sb.from('app_state').select('data').eq('user_id', usuarioLog.id).maybeSingle();
     if (data && data.data) {
       const usuarioActualBackup = D.usuarioActual;
       D = Object.assign(D, data.data);
       if (usuarioActualBackup) D.usuarioActual = usuarioActualBackup;
-      console.log('✓ Datos cargados de Supabase');
+      console.log('✓ Config cargada de app_state');
     } else {
-      console.log('ℹ Sin datos previos en Supabase (primer uso)');
+      console.log('ℹ Sin datos previos (primer uso)');
     }
     
-    // 2) Cargar ALUMNOS desde la tabla alumnos (compartidos entre todos)
+    // 2) Cargar tablas compartidas de Supabase
     await cargarAlumnosDeSupabase();
+    await cargarRegistrosDeSupabase();
+    await cargarReconocimientosDeSupabase();
+    await cargarRangosPeriodosDeSupabase();
+    await cargarPeriodosCerradosDeSupabase();
   } catch(e){ console.error('Error carga:', e); }
+}
+
+async function cargarRegistrosDeSupabase(){
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('registros').select('*').order('fecha', {ascending: false});
+    if (error) throw error;
+    if (data) {
+      D.registros = data.map(r => ({
+        id: r.id,
+        alumnoId: r.alumno_id,
+        faltaId: r.falta_id,
+        cat: r.cat,
+        texto: r.texto,
+        gravedad: r.gravedad,
+        gravedadOriginal: r.gravedad_original,
+        gravedadModificadaPorDocente: r.gravedad_modificada_por_docente,
+        aspecto: r.aspecto,
+        equiv: r.equiv,
+        fecha: r.fecha,
+        fechaCarga: r.fecha_carga,
+        esRetroactivo: r.es_retroactivo,
+        periodo: r.periodo,
+        anoEscolar: r.ano_escolar,
+        obs: r.obs || '',
+        reparadora: r.reparadora || '',
+        firmaLibro: r.firma_libro,
+        docenteId: r.docente_id,
+        docenteNombre: r.docente_nombre,
+        docenteRol: r.docente_rol,
+        sinPeriodoAutomatico: r.sin_periodo_automatico,
+        observacionDireccion: r.observacion_direccion || '',
+        observacionDireccionPor: r.observacion_direccion_por,
+        observacionDireccionFecha: r.observacion_direccion_fecha
+      }));
+      console.log('✓ ' + D.registros.length + ' registros cargados');
+    }
+  } catch(e){ console.error('Error cargando registros:', e); }
+}
+
+async function cargarReconocimientosDeSupabase(){
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('reconocimientos').select('*').order('fecha', {ascending: false});
+    if (error) throw error;
+    if (data) {
+      D.reconocimientos = data.map(r => ({
+        id: r.id,
+        alumnoId: r.alumno_id,
+        virtudId: r.virtud_id,
+        virtudNombre: r.virtud_nombre,
+        ejemplo: r.ejemplo,
+        detalle: r.detalle || '',
+        clase: r.clase || '',
+        fecha: r.fecha,
+        fechaCarga: r.fecha_carga,
+        esRetroactivo: r.es_retroactivo,
+        periodo: r.periodo,
+        anoEscolar: r.ano_escolar,
+        docenteId: r.docente_id,
+        docenteNombre: r.docente_nombre,
+        docenteRol: r.docente_rol,
+        sinPeriodoAutomatico: r.sin_periodo_automatico,
+        observacionDireccion: r.observacion_direccion || '',
+        observacionDireccionPor: r.observacion_direccion_por,
+        observacionDireccionFecha: r.observacion_direccion_fecha
+      }));
+      console.log('✓ ' + D.reconocimientos.length + ' reconocimientos cargados');
+    }
+  } catch(e){ console.error('Error cargando reconocimientos:', e); }
+}
+
+async function cargarRangosPeriodosDeSupabase(){
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('rangos_periodos').select('*');
+    if (error) throw error;
+    D.rangosPeriodos = {};
+    if (data) {
+      data.forEach(r => {
+        if (!D.rangosPeriodos[r.ano_escolar]) D.rangosPeriodos[r.ano_escolar] = {};
+        D.rangosPeriodos[r.ano_escolar][r.periodo_id] = {
+          desde: r.fecha_desde,
+          hasta: r.fecha_hasta,
+          nombre: r.periodo_nombre
+        };
+      });
+      console.log('✓ Rangos de períodos cargados: ' + data.length);
+    }
+  } catch(e){ console.error('Error cargando rangos:', e); }
+}
+
+async function cargarPeriodosCerradosDeSupabase(){
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('periodos_cerrados').select('*');
+    if (error) throw error;
+    D.periodosCerrados = {};
+    if (data) {
+      data.forEach(c => {
+        D.periodosCerrados[c.id] = {
+          fecha: c.cerrado_en,
+          usuarioEmail: c.cerrado_por_email,
+          usuarioNombre: c.cerrado_por_nombre,
+          razon: c.razon
+        };
+      });
+      console.log('✓ Períodos cerrados cargados: ' + data.length);
+    }
+  } catch(e){ console.error('Error cargando cierres:', e); }
 }
 
 async function cargarAlumnosDeSupabase(){
@@ -283,9 +443,8 @@ async function cargarAlumnosDeSupabase(){
     const { data, error } = await sb.from('alumnos').select('*').eq('activo', true).order('grado').order('nombre');
     if (error) throw error;
     if (data) {
-      // Convertir formato de Supabase al formato interno de la app
       D.alumnos = data.map(a => ({
-        id: a.id, // uuid de Supabase
+        id: a.id,
         nombre: a.nombre,
         nivel: a.nivel,
         grado: a.grado
@@ -302,14 +461,17 @@ window.refrescarAlumnos = async function(){
   render();
 };
 
-// No guardar usuarioActual/usuariosSistema/auditoriaSistema/alumnos en app_state
-// (alumnos van a tabla propia, no al JSON)
+// No guardar en app_state lo que ya vive en tablas propias de Supabase
 function datosParaGuardar(){
   const copia = Object.assign({}, D);
   delete copia.usuarioActual;
   delete copia.usuariosSistema;
   delete copia.auditoriaSistema;
-  delete copia.alumnos; // Los alumnos viven en tabla propia
+  delete copia.alumnos;         // tabla alumnos
+  delete copia.registros;       // tabla registros
+  delete copia.reconocimientos; // tabla reconocimientos
+  delete copia.rangosPeriodos;  // tabla rangos_periodos
+  delete copia.periodosCerrados;// tabla periodos_cerrados
   return copia;
 }
 const uid = () => Math.random().toString(36).slice(2,9);
@@ -476,6 +638,7 @@ function render(){
   // Solo dirección/admin ven estos tabs adicionales
   if (esDireccion) {
     tabs.push(["usuarios","👥 Usuarios"]);
+    tabs.push(["periodos","📅 Períodos Escolares"]);
     tabs.push(["cierre","🔒 Cierre de Período"]);
     tabs.push(["auditoria","📜 Auditoría"]);
     tabs.push(["respaldo","Respaldo"]);
@@ -499,6 +662,7 @@ function render(){
   else if (tab==="gei") M.innerHTML = vGEI();
   else if (tab==="informe") M.innerHTML = vInforme();
   else if (tab==="usuarios" && esDireccion) M.innerHTML = vUsuarios();
+  else if (tab==="periodos" && esDireccion) M.innerHTML = vPeriodosEscolares();
   else if (tab==="cierre" && esDireccion) M.innerHTML = vCierrePeriodo();
   else if (tab==="auditoria" && esDireccion) M.innerHTML = vAuditoria();
   else if (tab==="guia") M.innerHTML = vGuia();
@@ -585,23 +749,66 @@ function vReconocer(){
   </section>`;
 }
 
-window.registrarReconocimiento = () => {
-  // Verificar si el período está cerrado
-  const cierreKey = D.anoEscolar + '_' + D.periodo;
-  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
-    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos reconocimientos. Solo Dirección puede reabrirlo.');
-    return;
-  }
+window.registrarReconocimiento = async () => {
   const v = VIRTUDES.find(x=>x.id===formRecon.virtudId);
   const al = D.alumnos.find(x=>x.id===formRecon.alumnoId);
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
   if(!v || !al || !doc) return;
+  
+  const anoDelHecho = detectarAnoEscolar(formRecon.fecha);
+  let periodoDelHecho = detectarPeriodoPorFecha(formRecon.fecha, anoDelHecho);
+  let sinPeriodoAuto = false;
+  
+  if (!periodoDelHecho) {
+    const opciones = PERIODOS.map((p,i) => `${i+1}) ${p.nombre}`).join('\n');
+    const eleccion = prompt(
+      `⚠ La fecha ${formRecon.fecha} no cae en ningún período definido.\n\nElegí:\n\n${opciones}`,
+      '1'
+    );
+    if (!eleccion) return;
+    const idx = parseInt(eleccion) - 1;
+    if (idx < 0 || idx >= PERIODOS.length) { alert('Opción inválida'); return; }
+    periodoDelHecho = PERIODOS[idx].id;
+    sinPeriodoAuto = true;
+  }
+  
+  const cierreKey = anoDelHecho + '_' + periodoDelHecho;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ El período correspondiente a esa fecha está cerrado por Dirección.');
+    return;
+  }
+  
+  const esRetroactivo = formRecon.fecha !== new Date().toISOString().slice(0,10);
+  const nuevoId = uid();
+  const fechaCargaCompleta = new Date().toISOString();
+  
   const nuevo = {
-    id: uid(), alumnoId: al.id, virtudId: v.id, virtudNombre: v.nombre,
+    id: nuevoId, alumnoId: al.id, virtudId: v.id, virtudNombre: v.nombre,
     ejemplo: formRecon.ejemplo, detalle: formRecon.detalle.trim(),
-    clase: formRecon.clase.trim(), fecha: formRecon.fecha, periodo: D.periodo, anoEscolar: D.anoEscolar,
+    clase: formRecon.clase.trim(), 
+    fecha: formRecon.fecha, fechaCarga: fechaCargaCompleta, esRetroactivo,
+    periodo: periodoDelHecho, anoEscolar: anoDelHecho,
     docenteId: doc.id, docenteNombre: doc.nombre, docenteRol: doc.rol || "",
+    sinPeriodoAutomatico: sinPeriodoAuto,
+    observacionDireccion: ""
   };
+  
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('reconocimientos').insert({
+        id: nuevoId, alumno_id: al.id, virtud_id: v.id, virtud_nombre: v.nombre,
+        ejemplo: formRecon.ejemplo, detalle: formRecon.detalle.trim(), clase: formRecon.clase.trim(),
+        fecha: formRecon.fecha, fecha_carga: fechaCargaCompleta, es_retroactivo: esRetroactivo,
+        periodo: periodoDelHecho, ano_escolar: anoDelHecho,
+        docente_id: doc.id, docente_nombre: doc.nombre, docente_rol: doc.rol || "",
+        sin_periodo_automatico: sinPeriodoAuto, observacion_direccion: ""
+      });
+      if (error) throw error;
+    } catch(e){
+      alert('Error al guardar: ' + e.message);
+      return;
+    }
+  }
   D.reconocimientos.push(nuevo);
   formRecon.ok = `✓ Reconocimiento registrado a <b>${esc(al.nombre)}</b> por su ${v.nombre.toLowerCase()}. <button class="btnMin" style="margin-left:8px" onclick="imprimirNota('${nuevo.id}')">📄 Imprimir nota para la familia</button>`;
   formRecon.virtudId=""; formRecon.ejemplo=""; formRecon.detalle=""; formRecon.clase="";
@@ -657,6 +864,8 @@ window.imprimirNota = (reconId) => {
 let rapidoAlumno = "";
 let rapidoFalta = "";
 let rapidoFecha = new Date().toISOString().slice(0,10);
+let rapidoGravedadOverride = null;
+let rapidoObs = "";
 
 function ultimosAlumnos(n){
   const ids = [];
@@ -730,12 +939,31 @@ function vRapido(){
   const falta = CATALOGO.find(f=>f.id===rapidoFalta);
   let confirmar = "";
   if (falta) {
-    const equiv = EQUIV[falta.gravedad];
-    confirmar = `<div class="panel" style="border-left:4px solid ${colorG(falta.gravedad)};margin-top:16px">
-      <span class="badge" style="background:${colorG(falta.gravedad)}">Falta ${falta.gravedad}</span>
+    const gravedadReal = rapidoGravedadOverride || falta.gravedad;
+    const cambioGravedad = rapidoGravedadOverride && rapidoGravedadOverride !== falta.gravedad;
+    const equiv = EQUIV[gravedadReal];
+    confirmar = `<div class="panel" style="border-left:4px solid ${colorG(gravedadReal)};margin-top:16px">
+      <span class="badge" style="background:${colorG(gravedadReal)}">Falta ${gravedadReal}</span>
       <span class="badge" style="background:#1d3a5f">${ASPECTOS[falta.aspecto].nombre}</span>
+      ${cambioGravedad?`<span class="badge" style="background:#a34434">⚙ Modificada (original: ${falta.gravedad})</span>`:''}
       <div style="margin-top:6px;font-size:14.5px">${esc(falta.texto)}</div>
-      <div style="margin-top:4px;font-size:13px;color:#5a5346">Equivale a ${equiv} llamado${equiv>1?"s":""} de atención${falta.gravedad!=="leve"?" · Firma en libro de disciplina + aviso a Dirección":""}</div>
+      <div style="margin-top:4px;font-size:13px;color:#5a5346">Equivale a ${equiv} llamado${equiv>1?"s":""} de atención${gravedadReal!=="leve"?" · Firma en libro de disciplina + aviso a Dirección":""}</div>
+      
+      <div style="margin-top:12px;padding:8px 10px;background:#fefcf5;border:1px dashed #b8ae95;border-radius:4px">
+        <b style="font-size:12.5px;color:#1d3a5f">⚖ Ajustar gravedad según contexto:</b>
+        <p style="font-size:11.5px;color:#5a5346;margin:3px 0 6px">Ej: una mala palabra dicha en voz baja al caerse algo puede ser leve, pero dicha al docente sería grave. Si cambiás, es obligatorio explicar el contexto abajo.</p>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="chip" style="background:${gravedadReal==='leve'?'#5c7350':'#e8e0cc'};color:${gravedadReal==='leve'?'#fff':'#2b2519'};font-size:12px" onclick="rapidoGravedadOverride='leve';render()">⬇ Leve</button>
+          <button class="chip" style="background:${gravedadReal==='moderada'?'#8a6d2f':'#e8e0cc'};color:${gravedadReal==='moderada'?'#fff':'#2b2519'};font-size:12px" onclick="rapidoGravedadOverride='moderada';render()">➡ Moderada</button>
+          <button class="chip" style="background:${gravedadReal==='grave'?'#a34434':'#e8e0cc'};color:${gravedadReal==='grave'?'#fff':'#2b2519'};font-size:12px" onclick="rapidoGravedadOverride='grave';render()">⬆ Grave</button>
+          ${cambioGravedad?`<button class="btnMin" style="font-size:11px" onclick="rapidoGravedadOverride=null;render()">Restaurar (${falta.gravedad})</button>`:''}
+        </div>
+      </div>
+      
+      ${cambioGravedad?`<div style="margin-top:10px">
+        <label class="lbl" style="color:#a34434"><b>Contexto (OBLIGATORIO — mínimo 10 caracteres)</b></label>
+        <textarea rows="2" style="width:100%;border:2px solid #a34434;background:#fefaf5" placeholder="Explicá qué pasó, cómo se dijo, en qué situación… Para que Dirección pueda entender el cambio." onchange="rapidoObs=this.value">${esc(rapidoObs)}</textarea>
+      </div>`:''}
     </div>
     <button class="btn btnBig" onclick="registrarRapido()">✓ Registrar llamado</button>`;
   }
@@ -744,7 +972,7 @@ function vRapido(){
     <div class="pasoInd">Paso 2 de 2</div>
     <div style="background:#1d3a5f;color:#fdfcf8;padding:10px 14px;border-radius:3px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div><b>${esc(al.nombre)}</b><div style="font-size:12.5px;color:#c9b06a">${r.llamados} llamado${r.llamados===1?"":"s"} · ${r.tramo==="regular"?"REGULAR":r.tramo==="bueno"?"BUENO":"MUY BUENO"}</div></div>
-      <button class="chip" style="background:#fdfcf8;color:#1d3a5f" onclick="rapidoAlumno='';rapidoFalta='';render()">Cambiar alumno</button>
+      <button class="chip" style="background:#fdfcf8;color:#1d3a5f" onclick="rapidoAlumno='';rapidoFalta='';rapidoGravedadOverride=null;rapidoObs='';render()">Cambiar alumno</button>
     </div>
     <div style="background:#eef2f7;border-left:4px solid #1d3a5f;padding:8px 12px;border-radius:3px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <label style="font-size:12px;color:#1d3a5f;font-weight:700;text-transform:uppercase">📅 Fecha:</label>
@@ -757,25 +985,85 @@ function vRapido(){
   </section>`;
 }
 
-window.registrarRapido = () => {
-  // Verificar si el período está cerrado
-  const cierreKey = D.anoEscolar + '_' + D.periodo;
-  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
-    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos registros. Solo Dirección puede reabrirlo.');
-    return;
-  }
+window.registrarRapido = async () => {
   const falta = CATALOGO.find(f=>f.id===rapidoFalta);
   const al = D.alumnos.find(a=>a.id===rapidoAlumno);
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
   if(!falta || !al) return;
-  const equiv = EQUIV[falta.gravedad];
-  D.registros.push({id:uid(), alumnoId:al.id, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
-    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha: rapidoFecha,
-    periodo:D.periodo, anoEscolar:D.anoEscolar, obs:"", reparadora:"", firmaLibro:falta.gravedad!=="leve",
-    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
+  
+  const gravedadFinal = rapidoGravedadOverride || falta.gravedad;
+  const gravedadCambiada = rapidoGravedadOverride && rapidoGravedadOverride !== falta.gravedad;
+  
+  if (gravedadCambiada && rapidoObs.trim().length < 10) {
+    alert('⚠ Cambiaste la gravedad de "' + falta.gravedad + '" a "' + gravedadFinal + '".\n\nEs obligatorio explicar el contexto (mínimo 10 caracteres) para que Dirección pueda revisarlo.');
+    return;
+  }
+  
+  const anoDelHecho = detectarAnoEscolar(rapidoFecha);
+  let periodoDelHecho = detectarPeriodoPorFecha(rapidoFecha, anoDelHecho);
+  let sinPeriodoAuto = false;
+  
+  if (!periodoDelHecho) {
+    const opciones = PERIODOS.map((p,i) => `${i+1}) ${p.nombre}`).join('\n');
+    const eleccion = prompt(
+      `⚠ La fecha ${rapidoFecha} no cae en ningún período definido para el año ${anoDelHecho}.\n\nElegí el período:\n\n${opciones}\n\nEscribí el número:`,
+      '1'
+    );
+    if (!eleccion) return;
+    const idx = parseInt(eleccion) - 1;
+    if (idx < 0 || idx >= PERIODOS.length) { alert('Opción inválida'); return; }
+    periodoDelHecho = PERIODOS[idx].id;
+    sinPeriodoAuto = true;
+  }
+  
+  const cierreKey = anoDelHecho + '_' + periodoDelHecho;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ El período correspondiente a esa fecha está cerrado por Dirección.');
+    return;
+  }
+  
+  const equiv = EQUIV[gravedadFinal];
+  const esRetroactivo = rapidoFecha !== new Date().toISOString().slice(0,10);
+  const nuevoId = uid();
+  const fechaCargaCompleta = new Date().toISOString();
+  
+  const registroLocal = {
+    id: nuevoId, alumnoId:al.id, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
+    gravedad: gravedadFinal,
+    gravedadOriginal: gravedadCambiada ? falta.gravedad : null,
+    gravedadModificadaPorDocente: gravedadCambiada,
+    aspecto:falta.aspecto, equiv, 
+    fecha: rapidoFecha, fechaCarga: fechaCargaCompleta, esRetroactivo,
+    periodo: periodoDelHecho, anoEscolar: anoDelHecho, 
+    obs: rapidoObs.trim(), reparadora:"", firmaLibro:gravedadFinal!=="leve",
+    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || "",
+    sinPeriodoAutomatico: sinPeriodoAuto, observacionDireccion: ""
+  };
+  
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('registros').insert({
+        id: nuevoId, alumno_id: al.id, falta_id: falta.id, cat: falta.cat, texto: falta.texto,
+        gravedad: gravedadFinal, gravedad_original: gravedadCambiada ? falta.gravedad : null,
+        gravedad_modificada_por_docente: gravedadCambiada,
+        aspecto: falta.aspecto, equiv,
+        fecha: rapidoFecha, fecha_carga: fechaCargaCompleta, es_retroactivo: esRetroactivo,
+        periodo: periodoDelHecho, ano_escolar: anoDelHecho,
+        obs: rapidoObs.trim(), reparadora: "", firma_libro: gravedadFinal!=="leve",
+        docente_id: doc?.id || "", docente_nombre: doc?.nombre || "", docente_rol: doc?.rol || "",
+        sin_periodo_automatico: sinPeriodoAuto, observacion_direccion: ""
+      });
+      if (error) throw error;
+    } catch(e){
+      alert('Error al guardar: ' + e.message);
+      return;
+    }
+  }
+  
+  D.registros.unshift(registroLocal);
   guardar();
   rapidoOk = `✓ Registrado para <b>${esc(al.nombre)}</b>${doc?` por ${esc(doc.nombre)}`:""}: ${esc(falta.texto)}. ` + (falta.gravedad!=="leve" ? "Recordá firma en libro de disciplina y aviso a Dirección." : "");
-  rapidoAlumno = ""; rapidoFalta = "";
+  rapidoAlumno = ""; rapidoFalta = ""; rapidoGravedadOverride = null; rapidoObs = "";
   render();
   setTimeout(()=>{ rapidoOk=""; if(tab==="rapido") render(); }, 5000);
 };
@@ -1247,19 +1535,32 @@ window.logoutAdmin = () => {
   guardar(); render();
 };
 
-window.editarRegistro = (id) => {
+window.editarRegistro = async (id) => {
   if(!D.adminLogged){ alert("Necesitás acceso administrativo para editar registros."); return; }
   const reg = D.registros.find(r=>r.id===id); if(!reg) return;
-  const falta = CATALOGO.find(f=>f.id===reg.faltaId);
   const obs = prompt("Observaciones del registro:", reg.obs);
   if(obs === null) return;
+  
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('registros').update({obs}).eq('id', id);
+      if (error) throw error;
+    } catch(e){ alert('Error: ' + e.message); return; }
+  }
   reg.obs = obs;
   guardar(); render();
 };
 
-window.borrarRegistro = (id) => {
+window.borrarRegistro = async (id) => {
   if(!D.adminLogged){ alert("Necesitás acceso administrativo para borrar registros."); return; }
   if(!confirm("¿Borrar este registro de falta? Solo dirección puede hacer esto.")) return;
+  
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('registros').delete().eq('id', id);
+      if (error) throw error;
+    } catch(e){ alert('Error: ' + e.message); return; }
+  }
   D.registros = D.registros.filter(r=>r.id!==id);
   guardar(); render();
 };
@@ -1333,13 +1634,30 @@ function vRegistro(){
   }
   let panelFalta = "";
   if (falta) {
-    panelFalta = `<div class="panel" style="border-left:4px solid ${colorG(falta.gravedad)}">
-      <span class="badge" style="background:${colorG(falta.gravedad)}">Falta ${falta.gravedad}</span>
+    const gravedadReal = form.gravedadOverride || falta.gravedad;
+    const cambioGravedad = form.gravedadOverride && form.gravedadOverride !== falta.gravedad;
+    const equivReal = form.equiv ?? EQUIV[gravedadReal];
+    
+    panelFalta = `<div class="panel" style="border-left:4px solid ${colorG(gravedadReal)}">
+      <span class="badge" style="background:${colorG(gravedadReal)}">Falta ${gravedadReal}</span>
       <span class="badge" style="background:#1d3a5f">${ASPECTOS[falta.aspecto].nombre}</span>
-      ${falta.gravedad!=="leve"?'<span class="badge" style="background:#8a6d2f">Firma libro de disciplina + aviso a Dirección</span>':""}
-      <p style="margin:10px 0 6px;font-size:14px"><b>Protocolo:</b> ${ACCIONES[falta.gravedad]}</p>
-      ${falta.gravedad!=="leve"?`<label class="lbl">Equivalencia en llamados (se define en diálogo con el Equipo Directivo)</label>
-        <select onchange="form.equiv=Number(this.value)"><option value="2" ${equivFinal===2?"selected":""}>2 llamados de atención</option><option value="3" ${equivFinal===3?"selected":""}>3 llamados de atención</option></select>`:""}
+      ${gravedadReal!=="leve"?'<span class="badge" style="background:#8a6d2f">Firma libro de disciplina + aviso a Dirección</span>':""}
+      ${cambioGravedad?`<span class="badge" style="background:#a34434">⚙ Gravedad modificada por docente (original: ${falta.gravedad})</span>`:''}
+      
+      <div style="margin-top:12px;padding:10px;background:#fefcf5;border:1px dashed #b8ae95;border-radius:4px">
+        <b style="font-size:13px;color:#1d3a5f">⚖ Ajustar gravedad según el contexto:</b>
+        <p style="font-size:12px;color:#5a5346;margin:4px 0 8px">La app clasifica esta falta como <b>${falta.gravedad}</b>. Si el contexto lo justifica (por ejemplo, una mala palabra dicha en voz baja al caerse algo), podés modificarla. Al cambiarla, será obligatorio explicar el contexto en observaciones.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="chip" style="background:${gravedadReal==='leve'?'#5c7350':'#e8e0cc'};color:${gravedadReal==='leve'?'#fff':'#2b2519'}" onclick="form.gravedadOverride='leve';form.equiv=null;render()">⬇ Leve</button>
+          <button class="chip" style="background:${gravedadReal==='moderada'?'#8a6d2f':'#e8e0cc'};color:${gravedadReal==='moderada'?'#fff':'#2b2519'}" onclick="form.gravedadOverride='moderada';form.equiv=null;render()">➡ Moderada</button>
+          <button class="chip" style="background:${gravedadReal==='grave'?'#a34434':'#e8e0cc'};color:${gravedadReal==='grave'?'#fff':'#2b2519'}" onclick="form.gravedadOverride='grave';form.equiv=null;render()">⬆ Grave</button>
+          ${cambioGravedad?`<button class="btnMin" onclick="form.gravedadOverride=null;form.equiv=null;render()">Restaurar original (${falta.gravedad})</button>`:''}
+        </div>
+      </div>
+      
+      <p style="margin:10px 0 6px;font-size:14px"><b>Protocolo:</b> ${ACCIONES[gravedadReal]}</p>
+      ${gravedadReal!=="leve"?`<label class="lbl">Equivalencia en llamados (se define en diálogo con el Equipo Directivo)</label>
+        <select onchange="form.equiv=Number(this.value)"><option value="2" ${equivReal===2?"selected":""}>2 llamados de atención</option><option value="3" ${equivReal===3?"selected":""}>3 llamados de atención</option></select>`:""}
     </div>`;
   }
   return `<section class="card"><h2>Registrar llamado de atención</h2>
@@ -1368,8 +1686,8 @@ function vRegistro(){
       </div>
     </div>
     <div class="grid2">
-      <div><label class="lbl">Observaciones (contexto, intencionalidad, reiteración…)</label>
-        <textarea rows="3" style="width:100%" onchange="form.obs=this.value">${esc(form.obs)}</textarea></div>
+      <div><label class="lbl">Observaciones ${form.gravedadOverride && falta && form.gravedadOverride !== falta.gravedad ? '<span style="color:#a34434;font-weight:700">— OBLIGATORIO (justificá el cambio de gravedad)</span>' : '(contexto, intencionalidad, reiteración…)'}</label>
+        <textarea rows="3" style="width:100%;${form.gravedadOverride && falta && form.gravedadOverride !== falta.gravedad ? 'border:2px solid #a34434;background:#fefaf5' : ''}" placeholder="${form.gravedadOverride && falta && form.gravedadOverride !== falta.gravedad ? 'Explicá el contexto: qué pasó, cómo se dijo, en qué situación… Para que Dirección pueda entender el cambio.' : 'Describí el contexto…'}" onchange="form.obs=this.value">${esc(form.obs)}</textarea></div>
       <div><label class="lbl">Acción reparadora propuesta</label>
         <textarea rows="3" style="width:100%" placeholder="Pedido de disculpas, reflexión guiada, compromiso de mejora…" onchange="form.reparadora=this.value">${esc(form.reparadora)}</textarea></div>
     </div>
@@ -1377,26 +1695,96 @@ function vRegistro(){
     ${form.ok?`<div class="aviso">${form.ok}</div>`:""}
   </section>`;
 }
-window.registrar = () => {
-  // Verificar si el período está cerrado
-  const cierreKey = D.anoEscolar + '_' + D.periodo;
-  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
-    alert('⛔ Este período está cerrado por Dirección.\n\nNo se pueden agregar nuevos registros. Solo Dirección puede reabrirlo desde el tab "🔒 Cierre de Período".');
-    return;
-  }
+window.registrar = async () => {
   const falta = CATALOGO.find(f=>f.id===form.faltaId);
   if(!form.alumnoId || !falta) return;
-  const equiv = form.equiv ?? EQUIV[falta.gravedad];
+  
+  const gravedadFinal = form.gravedadOverride || falta.gravedad;
+  const gravedadCambiada = form.gravedadOverride && form.gravedadOverride !== falta.gravedad;
+  
+  if (gravedadCambiada && form.obs.trim().length < 10) {
+    alert('⚠ Cambiaste la gravedad de "' + falta.gravedad + '" a "' + gravedadFinal + '".\n\nEs obligatorio explicar el contexto en Observaciones (mínimo 10 caracteres) para que Dirección pueda revisarlo.');
+    return;
+  }
+  
+  const anoDelHecho = detectarAnoEscolar(form.fecha);
+  let periodoDelHecho = detectarPeriodoPorFecha(form.fecha, anoDelHecho);
+  let sinPeriodoAuto = false;
+  
+  if (!periodoDelHecho) {
+    const opciones = PERIODOS.map((p,i) => `${i+1}) ${p.nombre}`).join('\n');
+    const eleccion = prompt(
+      `⚠ La fecha ${form.fecha} no cae en ningún período definido para el año ${anoDelHecho}.\n\n` +
+      `Elegí el período al que corresponde:\n\n${opciones}\n\nEscribí el número (1-5):`,
+      '1'
+    );
+    if (!eleccion) return;
+    const idx = parseInt(eleccion) - 1;
+    if (idx < 0 || idx >= PERIODOS.length) { alert('Opción inválida'); return; }
+    periodoDelHecho = PERIODOS[idx].id;
+    sinPeriodoAuto = true;
+  }
+  
+  const cierreKey = anoDelHecho + '_' + periodoDelHecho;
+  if (D.periodosCerrados && D.periodosCerrados[cierreKey]) {
+    alert('⛔ El período correspondiente a esa fecha está cerrado por Dirección.\n\nNo se pueden agregar nuevos registros. Contactá a Dirección para reabrirlo.');
+    return;
+  }
+  
+  const equiv = form.equiv ?? EQUIV[gravedadFinal];
   const doc = D.docentes.find(d=>d.id===D.docenteActivo);
-  D.registros.push({id:uid(), alumnoId:form.alumnoId, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
-    gravedad:falta.gravedad, aspecto:falta.aspecto, equiv, fecha:form.fecha, periodo:D.periodo, anoEscolar:D.anoEscolar,
-    obs:form.obs.trim(), reparadora:form.reparadora.trim(), firmaLibro:falta.gravedad!=="leve",
-    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || ""});
+  const fechaCargaCompleta = new Date().toISOString();
+  const esRetroactivo = form.fecha !== new Date().toISOString().slice(0,10);
+  const nuevoId = uid();
+  
+  const registroLocal = {
+    id: nuevoId, alumnoId:form.alumnoId, faltaId:falta.id, cat:falta.cat, texto:falta.texto,
+    gravedad: gravedadFinal,
+    gravedadOriginal: gravedadCambiada ? falta.gravedad : null,
+    gravedadModificadaPorDocente: gravedadCambiada,
+    aspecto:falta.aspecto, equiv, 
+    fecha:form.fecha, fechaCarga: fechaCargaCompleta, esRetroactivo,
+    periodo: periodoDelHecho, anoEscolar: anoDelHecho,
+    obs:form.obs.trim(), reparadora:form.reparadora.trim(), firmaLibro:gravedadFinal!=="leve",
+    docenteId: doc?.id || "", docenteNombre: doc?.nombre || "", docenteRol: doc?.rol || "",
+    sinPeriodoAutomatico: sinPeriodoAuto,
+    observacionDireccion: ""
+  };
+  
+  // Guardar en Supabase (tabla registros compartida)
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('registros').insert({
+        id: nuevoId, alumno_id: form.alumnoId, falta_id: falta.id, cat: falta.cat, texto: falta.texto,
+        gravedad: gravedadFinal, gravedad_original: gravedadCambiada ? falta.gravedad : null,
+        gravedad_modificada_por_docente: gravedadCambiada,
+        aspecto: falta.aspecto, equiv,
+        fecha: form.fecha, fecha_carga: fechaCargaCompleta, es_retroactivo: esRetroactivo,
+        periodo: periodoDelHecho, ano_escolar: anoDelHecho,
+        obs: form.obs.trim(), reparadora: form.reparadora.trim(), firma_libro: gravedadFinal!=="leve",
+        docente_id: doc?.id || "", docente_nombre: doc?.nombre || "", docente_rol: doc?.rol || "",
+        sin_periodo_automatico: sinPeriodoAuto, observacion_direccion: ""
+      });
+      if (error) throw error;
+    } catch(e){
+      alert('Error al guardar: ' + e.message);
+      return;
+    }
+  }
+  
+  D.registros.unshift(registroLocal);
+  
   const a = D.alumnos.find(x=>x.id===form.alumnoId);
-  form.ok = `Registrado para ${esc(a.nombre)}${doc?` por ${esc(doc.nombre)}`:""}.` + (falta.gravedad!=="leve" ? " Corresponde firma en el libro de disciplina y aviso a Dirección." : "");
-  form.faltaId=""; form.obs=""; form.reparadora=""; form.equiv=null;
+  const periodoNombre = PERIODOS.find(p=>p.id===periodoDelHecho)?.nombre || periodoDelHecho;
+  form.ok = `✓ Registrado para ${esc(a.nombre)}${doc?` por ${esc(doc.nombre)}`:""}.` +
+    (esRetroactivo ? ` <b>Carga retroactiva</b> — se guardó en <b>${periodoNombre} ${anoDelHecho}</b>.` : '') +
+    (gravedadCambiada ? ` ⚙ <b>Gravedad ajustada</b> de "${falta.gravedad}" a "${gravedadFinal}" según contexto.` : '') +
+    (gravedadFinal!=="leve" ? " Corresponde firma en el libro de disciplina y aviso a Dirección." : "") +
+    (sinPeriodoAuto ? ' ⚠ La fecha no cayó en ningún período definido — Dirección deberá revisarlo.' : '');
+  
+  form.faltaId=""; form.obs=""; form.reparadora=""; form.equiv=null; form.gravedadOverride=null;
   guardar(); render();
-  setTimeout(()=>{ form.ok=""; if(tab==="registro") render(); }, 6000);
+  setTimeout(()=>{ form.ok=""; if(tab==="registro") render(); }, 8000);
 };
 
 // ── Grilla ──
@@ -1424,11 +1812,25 @@ function vGrilla(){
       : `<span class="badge" style="background:#5c7350">Muy bueno · sin llamados</span>`;
     let detalle = "";
     if (abierto===a.id) {
-      detalle = r.regs.map(reg=>`<tr style="background:#f7f4ec"><td colspan="5" style="font-size:13px">
-        <b>${reg.fecha}</b> · <span style="color:${colorG(reg.gravedad)};font-weight:700">${reg.gravedad.toUpperCase()}</span> (${reg.equiv} llamado${reg.equiv>1?"s":""}) · ${esc(reg.texto)}${reg.firmaLibro?" · Firma en libro":""}
+      const esDireccionDir = D.usuarioActual && (D.usuarioActual.rol === 'direccion' || D.usuarioActual.rol === 'admin' || D.usuarioActual.rol === 'desarrollador');
+      detalle = r.regs.map(reg=>{
+        const iconoGrav = (esDireccionDir && reg.gravedadModificadaPorDocente) 
+          ? `<span title="Gravedad modificada por docente. Original: ${reg.gravedadOriginal}" style="cursor:help;color:#a34434;font-weight:700"> ⚙</span>` : '';
+        const iconoRetro = (esDireccionDir && reg.esRetroactivo) 
+          ? `<span title="Cargado el ${reg.fechaCarga ? new Date(reg.fechaCarga).toLocaleString('es-AR') : 'sin fecha'} · Carga retroactiva" style="cursor:help;color:#8a6d2f;font-weight:700"> ⏰</span>` : '';
+        const btnObsDir = esDireccionDir && (reg.esRetroactivo || reg.gravedadModificadaPorDocente || reg.sinPeriodoAutomatico)
+          ? `<br><button class="btnMin" style="font-size:11px;background:#8a6d2f;color:#fff;border:none;margin-top:4px" onclick="agregarObsDireccion('registro','${reg.id}')">📝 ${reg.observacionDireccion ? 'Ver/editar' : 'Agregar'} obs. Dirección</button>`
+          : '';
+        const obsDirTxt = reg.observacionDireccion ? `<br><i style="color:#1d3a5f"><b>Obs. Dirección (${esc(reg.observacionDireccionPor||'')}):</b> ${esc(reg.observacionDireccion)}</i>` : '';
+        
+        return `<tr style="background:#f7f4ec"><td colspan="5" style="font-size:13px">
+        <b>${reg.fecha}</b>${iconoRetro} · <span style="color:${colorG(reg.gravedad)};font-weight:700">${reg.gravedad.toUpperCase()}</span>${iconoGrav} (${reg.equiv} llamado${reg.equiv>1?"s":""}) · ${esc(reg.texto)}${reg.firmaLibro?" · Firma en libro":""}
         ${reg.docenteNombre?`<br><b>Docente:</b> ${esc(reg.docenteNombre)}`:""}
         ${reg.obs?`<br><i>Obs.: ${esc(reg.obs)}</i>`:""}${reg.reparadora?`<br><i>Acción reparadora: ${esc(reg.reparadora)}</i>`:""}
-      </td><td>${D.adminLogged?`<button class="btnMin" onclick="editarRegistro('${reg.id}')" style="font-size:11px">Editar</button><br><button class="btnMin" onclick="borrarRegistro('${reg.id}')" style="font-size:11px;background:#a34434;margin-top:2px">Borrar</button>`:"—"}</td></tr>`).join("");
+        ${obsDirTxt}
+        ${btnObsDir}
+      </td><td>${D.adminLogged?`<button class="btnMin" onclick="editarRegistro('${reg.id}')" style="font-size:11px">Editar</button><br><button class="btnMin" onclick="borrarRegistro('${reg.id}')" style="font-size:11px;background:#a34434;margin-top:2px">Borrar</button>`:"—"}</td></tr>`;
+      }).join("");
     }
     return `<tr style="${r.afectaNota?"background:#f9edeb":""}">
       <td>${esc(a.nombre)}</td>
@@ -1539,14 +1941,22 @@ function vInforme(){
   const obsKey = okeyBase+"_obs";
   const detalle = r.regs.length
     ? `<table style="margin-top:6px"><thead><tr><th>Fecha</th><th>Falta al AEC</th><th>Gravedad</th><th>Ll.</th><th>Docente</th><th>Acción reparadora</th></tr></thead><tbody>
-      ${r.regs.map(reg=>`<tr>
-        <td style="white-space:nowrap">${reg.fecha}</td>
-        <td>${esc(reg.texto)}${reg.obs?`<br><i style="font-size:12.5px;color:#5a5346">Obs.: ${esc(reg.obs)}</i>`:""}</td>
-        <td style="color:${colorG(reg.gravedad)};font-weight:700;text-transform:capitalize">${reg.gravedad}${reg.firmaLibro?"<br><span style='font-size:11.5px;font-weight:400;color:#5a5346'>Firma en libro</span>":""}</td>
+      ${r.regs.map(reg=>{
+        const esDireccionInf = D.usuarioActual && (D.usuarioActual.rol === 'direccion' || D.usuarioActual.rol === 'admin' || D.usuarioActual.rol === 'desarrollador');
+        const iconoGrav = (esDireccionInf && reg.gravedadModificadaPorDocente) 
+          ? `<span title="Docente modificó gravedad. Original: ${reg.gravedadOriginal}" style="cursor:help;color:#a34434"> ⚙</span>` : '';
+        const iconoRetro = (esDireccionInf && reg.esRetroactivo) 
+          ? `<span title="Carga retroactiva · Cargado ${reg.fechaCarga ? new Date(reg.fechaCarga).toLocaleString('es-AR') : ''}" style="cursor:help;color:#8a6d2f"> ⏰</span>` : '';
+        const obsDirTxt = reg.observacionDireccion ? `<br><i style="font-size:12px;color:#1d3a5f"><b>Obs. Dirección:</b> ${esc(reg.observacionDireccion)}</i>` : '';
+        return `<tr>
+        <td style="white-space:nowrap">${reg.fecha}${iconoRetro}</td>
+        <td>${esc(reg.texto)}${reg.obs?`<br><i style="font-size:12.5px;color:#5a5346">Obs.: ${esc(reg.obs)}</i>`:""}${obsDirTxt}</td>
+        <td style="color:${colorG(reg.gravedad)};font-weight:700;text-transform:capitalize">${reg.gravedad}${iconoGrav}${reg.firmaLibro?"<br><span style='font-size:11.5px;font-weight:400;color:#5a5346'>Firma en libro</span>":""}</td>
         <td style="text-align:center">${reg.equiv}</td>
         <td style="font-size:12.5px">${esc(reg.docenteNombre||"—")}</td>
         <td style="font-size:13px">${esc(reg.reparadora||"—")}</td>
-      </tr>`).join("")}
+      </tr>`;
+      }).join("")}
       <tr><td colspan="3" style="text-align:right;font-weight:700">Total de llamados del período:</td>
         <td style="text-align:center;font-weight:700;color:${r.afectaNota?"#a34434":"#1d3a5f"}">${r.llamados}</td>
         <td colspan="2" style="font-size:13px">${r.firmas?r.firmas+" firma"+(r.firmas===1?"":"s")+" en libro":""}</td></tr>
@@ -2087,18 +2497,49 @@ window.resetearClaveUsuario = async function(id, email){
   }
 };
 
-// ─── REALTIME: escuchar cambios en tabla alumnos ───
-let canalAlumnos = null;
+// ─── REALTIME: escuchar cambios en todas las tablas compartidas ───
+let canalRealtime = null;
 function suscribirseARealtime(){
-  if (!sb || canalAlumnos) return;
+  if (!sb || canalRealtime) return;
   
-  canalAlumnos = sb.channel('alumnos-realtime')
+  canalRealtime = sb.channel('convivencia-realtime')
     .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'alumnos' },
         async (payload) => {
           console.log('⚡ Cambio en alumnos:', payload.eventType);
-          // Recargar todos los alumnos y refrescar vista
           await cargarAlumnosDeSupabase();
+          render();
+        }
+    )
+    .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'registros' },
+        async (payload) => {
+          console.log('⚡ Cambio en registros:', payload.eventType);
+          await cargarRegistrosDeSupabase();
+          render();
+        }
+    )
+    .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'reconocimientos' },
+        async (payload) => {
+          console.log('⚡ Cambio en reconocimientos:', payload.eventType);
+          await cargarReconocimientosDeSupabase();
+          render();
+        }
+    )
+    .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'rangos_periodos' },
+        async (payload) => {
+          console.log('⚡ Cambio en rangos_periodos:', payload.eventType);
+          await cargarRangosPeriodosDeSupabase();
+          render();
+        }
+    )
+    .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'periodos_cerrados' },
+        async (payload) => {
+          console.log('⚡ Cambio en periodos_cerrados:', payload.eventType);
+          await cargarPeriodosCerradosDeSupabase();
           render();
         }
     )
@@ -2106,6 +2547,224 @@ function suscribirseARealtime(){
       console.log('📡 Realtime status:', status);
     });
 }
+
+// TAB: Períodos Escolares (solo dirección/admin/desarrollador)
+function vPeriodosEscolares(){
+  if (!D.usuarioActual || (D.usuarioActual.rol !== 'direccion' && D.usuarioActual.rol !== 'admin' && D.usuarioActual.rol !== 'desarrollador')) {
+    return '<div class="card"><h2>Sin acceso</h2><p>Solo Dirección/Admin pueden gestionar los períodos escolares.</p></div>';
+  }
+  
+  const anoActivo = D.anoEscolarPeriodos || D.anoEscolar || '2026';
+  const rangos = obtenerRangosPeriodos(anoActivo);
+  
+  const anosDisponibles = ['2025', '2026', '2027', '2028'];
+  
+  let filasRangos = '';
+  PERIODOS.forEach(p => {
+    const r = rangos[p.id] || rangosPorDefecto(anoActivo)[p.id];
+    filasRangos += `<tr>
+      <td><b>${esc(p.nombre)}</b></td>
+      <td><input type="date" id="pd_${p.id}" value="${r.desde}" style="padding:4px 8px;border:1px solid #b8ae95;border-radius:3px"></td>
+      <td><input type="date" id="ph_${p.id}" value="${r.hasta}" style="padding:4px 8px;border:1px solid #b8ae95;border-radius:3px"></td>
+    </tr>`;
+  });
+  
+  // Contar registros por período (con detección automática)
+  let resumen = '';
+  PERIODOS.forEach(p => {
+    const cantReg = D.registros.filter(r => r.anoEscolar === anoActivo && r.periodo === p.id).length;
+    const cantRecon = D.reconocimientos.filter(r => r.anoEscolar === anoActivo && r.periodo === p.id).length;
+    resumen += `<tr><td>${esc(p.nombre)}</td><td>${cantReg}</td><td>${cantRecon}</td></tr>`;
+  });
+  
+  return `<section class="card">
+    <h2>📅 Períodos Escolares</h2>
+    <div style="background:#eef2f7;border-left:4px solid #1d3a5f;padding:12px;border-radius:4px;margin-bottom:16px">
+      <b style="color:#1d3a5f">ℹ Cómo funciona</b>
+      <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Definí las <b>fechas de inicio y fin</b> de cada período del año escolar. Cuando un docente registra una falta o virtud, la app <b>automáticamente</b> detecta a qué período corresponde según la <b>fecha del hecho</b>.</p>
+      <p style="font-size:13.5px;margin:6px 0 0;color:#5a5346">Si cambiás los rangos, los registros existentes se pueden <b>reclasificar</b> con el botón de abajo.</p>
+    </div>
+    
+    <div style="margin-bottom:12px">
+      <label class="lbl">Año escolar a configurar</label>
+      <select onchange="D.anoEscolarPeriodos=this.value;render()" style="padding:6px 10px;border:1px solid #b8ae95;border-radius:3px">
+        ${anosDisponibles.map(a => `<option value="${a}" ${a===anoActivo?'selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>
+    
+    <h3 style="color:#1d3a5f;margin-top:16px">Rangos de fecha del año ${anoActivo}</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Período</th><th>Desde</th><th>Hasta</th></tr>
+        </thead>
+        <tbody>${filasRangos}</tbody>
+      </table>
+    </div>
+    
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="guardarRangosPeriodos('${anoActivo}')">💾 Guardar rangos</button>
+      <button class="btnMin" onclick="if(confirm('¿Restablecer los rangos por defecto del año ${anoActivo}?')){delete D.rangosPeriodos['${anoActivo}'];guardar();render();}">Restablecer por defecto</button>
+      <button class="btnMin" style="background:#8a6d2f;color:#fff;border:none" onclick="reclasificarRegistros('${anoActivo}')">🔄 Reclasificar registros existentes</button>
+    </div>
+    
+    <h3 style="color:#1d3a5f;margin-top:24px">Resumen actual del año ${anoActivo}</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Período</th><th>Llamados</th><th>Reconocimientos</th></tr>
+        </thead>
+        <tbody>${resumen}</tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+window.guardarRangosPeriodos = async function(ano) {
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso.');
+    return;
+  }
+  D.rangosPeriodos = D.rangosPeriodos || {};
+  const nuevos = {};
+  const filasSb = [];
+  PERIODOS.forEach(p => {
+    const desde = document.getElementById('pd_' + p.id)?.value;
+    const hasta = document.getElementById('ph_' + p.id)?.value;
+    if (desde && hasta) {
+      nuevos[p.id] = { desde, hasta, nombre: p.nombre };
+      filasSb.push({
+        id: ano + '_' + p.id,
+        ano_escolar: ano,
+        periodo_id: p.id,
+        periodo_nombre: p.nombre,
+        fecha_desde: desde,
+        fecha_hasta: hasta,
+        actualizado_en: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Guardar en Supabase (upsert)
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('rangos_periodos').upsert(filasSb);
+      if (error) throw error;
+    } catch(e){
+      alert('Error al guardar rangos en Supabase: ' + e.message);
+      return;
+    }
+  }
+  
+  D.rangosPeriodos[ano] = nuevos;
+  registrarAuditoria('CONFIGURAR_PERIODOS', `Año ${ano} - rangos actualizados`);
+  guardar();
+  render();
+  alert('✓ Rangos guardados. Los nuevos registros usarán estos rangos automáticamente.\n\nSi querés reclasificar los registros existentes con los nuevos rangos, usá el botón "Reclasificar registros".');
+};
+
+window.reclasificarRegistros = async function(ano) {
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Sin permiso.');
+    return;
+  }
+  
+  if (!confirm(`¿Reclasificar todos los registros del año ${ano}?\n\nLos llamados y reconocimientos se moverán al período que corresponda según sus fechas y los rangos actuales.\n\nEsta acción no borra datos, solo los reasigna.`)) return;
+  
+  let reclasificados = 0;
+  let sinCambio = 0;
+  
+  // Reclasificar registros (local + Supabase)
+  for (const r of D.registros) {
+    if (!r.fecha) continue;
+    const anoDet = detectarAnoEscolar(r.fecha);
+    if (anoDet !== ano) continue;
+    const periodoDet = detectarPeriodoPorFecha(r.fecha, anoDet);
+    if (periodoDet && (r.periodo !== periodoDet || r.anoEscolar !== anoDet)) {
+      r.periodo = periodoDet;
+      r.anoEscolar = anoDet;
+      if (sb && modoOnline) {
+        try {
+          await sb.from('registros').update({periodo: periodoDet, ano_escolar: anoDet}).eq('id', r.id);
+        } catch(e){ console.error(e); }
+      }
+      reclasificados++;
+    } else {
+      sinCambio++;
+    }
+  }
+  
+  // Reclasificar reconocimientos
+  for (const r of D.reconocimientos) {
+    if (!r.fecha) continue;
+    const anoDet = detectarAnoEscolar(r.fecha);
+    if (anoDet !== ano) continue;
+    const periodoDet = detectarPeriodoPorFecha(r.fecha, anoDet);
+    if (periodoDet && (r.periodo !== periodoDet || r.anoEscolar !== anoDet)) {
+      r.periodo = periodoDet;
+      r.anoEscolar = anoDet;
+      if (sb && modoOnline) {
+        try {
+          await sb.from('reconocimientos').update({periodo: periodoDet, ano_escolar: anoDet}).eq('id', r.id);
+        } catch(e){ console.error(e); }
+      }
+      reclasificados++;
+    } else {
+      sinCambio++;
+    }
+  }
+  
+  registrarAuditoria('RECLASIFICAR_REGISTROS', `Año ${ano}: ${reclasificados} reasignados, ${sinCambio} sin cambio`);
+  guardar();
+  render();
+  alert(`✓ Reclasificación completa.\n\nReasignados: ${reclasificados}\nSin cambio (ya estaban bien): ${sinCambio}`);
+};
+
+window.agregarObsDireccion = async function(tipoRegistro, id) {
+  const rolActual = D.usuarioActual?.rol;
+  if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
+    alert('⛔ Solo Dirección puede agregar observaciones.');
+    return;
+  }
+  
+  const coleccion = tipoRegistro === 'registro' ? D.registros : D.reconocimientos;
+  const item = coleccion.find(x => x.id === id);
+  if (!item) return;
+  
+  const nueva = prompt(
+    `Observación de Dirección sobre este registro retroactivo:\n\nAlumno: ${D.alumnos.find(a=>a.id===item.alumnoId)?.nombre || 'desconocido'}\nFecha del hecho: ${item.fecha}\nCargado: ${item.fechaCarga ? new Date(item.fechaCarga).toLocaleString('es-AR') : 'sin fecha'}\nDocente: ${item.docenteNombre}`,
+    item.observacionDireccion || ''
+  );
+  
+  if (nueva === null) return;
+  
+  const fechaObs = new Date().toISOString();
+  const tabla = tipoRegistro === 'registro' ? 'registros' : 'reconocimientos';
+  
+  // Guardar en Supabase
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from(tabla).update({
+        observacion_direccion: nueva.trim(),
+        observacion_direccion_por: D.usuarioActual.nombre,
+        observacion_direccion_fecha: fechaObs
+      }).eq('id', id);
+      if (error) throw error;
+    } catch(e){
+      alert('Error al guardar observación: ' + e.message);
+      return;
+    }
+  }
+  
+  item.observacionDireccion = nueva.trim();
+  item.observacionDireccionPor = D.usuarioActual.nombre;
+  item.observacionDireccionFecha = fechaObs;
+  registrarAuditoria('OBS_DIRECCION', `Sobre registro del ${item.fecha}: ${nueva.substr(0,80)}`);
+  guardar();
+  render();
+};
 
 // TAB: Cierre de Período (solo dirección/admin/desarrollador)
 function vCierrePeriodo(){
@@ -2191,10 +2850,31 @@ window.cerrarPeriodo = async function(ano, periodoId, periodoNombre){
   if (!confirm(`¿Cerrar el período "${periodoNombre}" del año ${ano}?\n\nSe bloquearán ${cantReg} llamados y ${cantRecon} reconocimientos. Los docentes NO podrán agregar más registros a este período.\n\nSolo Dirección puede reabrirlo después.`)) return;
   
   const razon = prompt('Motivo del cierre (opcional):', 'Cierre de período según calendario escolar');
+  const fechaCierre = new Date().toISOString();
+  
+  // Guardar en Supabase
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('periodos_cerrados').upsert({
+        id: ano + '_' + periodoId,
+        ano_escolar: ano,
+        periodo_id: periodoId,
+        periodo_nombre: periodoNombre,
+        cerrado_por_email: D.usuarioActual.email,
+        cerrado_por_nombre: D.usuarioActual.nombre,
+        cerrado_en: fechaCierre,
+        razon: razon || 'Sin motivo especificado'
+      });
+      if (error) throw error;
+    } catch(e){
+      alert('Error al cerrar en Supabase: ' + e.message);
+      return;
+    }
+  }
   
   D.periodosCerrados = D.periodosCerrados || {};
   D.periodosCerrados[ano + '_' + periodoId] = {
-    fecha: new Date().toISOString(),
+    fecha: fechaCierre,
     usuarioEmail: D.usuarioActual.email,
     usuarioNombre: D.usuarioActual.nombre,
     razon: razon || 'Sin motivo especificado'
@@ -2209,7 +2889,7 @@ window.cerrarPeriodo = async function(ano, periodoId, periodoNombre){
 window.reabrirPeriodo = async function(ano, periodoId, periodoNombre){
   const rolActual = D.usuarioActual?.rol;
   if (rolActual !== 'direccion' && rolActual !== 'admin' && rolActual !== 'desarrollador') {
-    alert('⛔ Sin permiso. Solo Dirección/Admin pueden reabrir períodos.');
+    alert('⛔ Sin permiso.');
     return;
   }
   
@@ -2218,8 +2898,20 @@ window.reabrirPeriodo = async function(ano, periodoId, periodoNombre){
   const razon = prompt('Motivo de la reapertura:', '');
   if (razon === null) return;
   
+  const cierrePrevio = (D.periodosCerrados || {})[ano + '_' + periodoId];
+  
+  // Borrar de Supabase
+  if (sb && modoOnline) {
+    try {
+      const { error } = await sb.from('periodos_cerrados').delete().eq('id', ano + '_' + periodoId);
+      if (error) throw error;
+    } catch(e){
+      alert('Error al reabrir en Supabase: ' + e.message);
+      return;
+    }
+  }
+  
   D.periodosCerrados = D.periodosCerrados || {};
-  const cierrePrevio = D.periodosCerrados[ano + '_' + periodoId];
   delete D.periodosCerrados[ano + '_' + periodoId];
   
   await registrarAuditoria('REABRIR_PERIODO', `${periodoNombre} ${ano}. Motivo: ${razon || 'sin especificar'}. Cierre previo por: ${cierrePrevio?.usuarioNombre || 'desconocido'}`);
