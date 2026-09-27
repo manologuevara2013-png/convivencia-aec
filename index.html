@@ -1668,8 +1668,9 @@ function vRegistro(){
           <option value="">Elegir alumno…</option>
           ${listaAlumnos.map(a=>`<option value="${a.id}" ${form.alumnoId===a.id?"selected":""}>${esc(a.nombre)}${a.grado&&!D.gradoActivo?` — ${esc(a.grado)}`:""}</option>`).join("")}
         </select>${avisoAlumno}</div>
-      <div><label class="lbl">Fecha</label>
-        <input type="date" value="${form.fecha}" onchange="form.fecha=this.value"></div>
+      <div><label class="lbl">Docente que registra</label>
+        <select style="width:100%" disabled><option>${esc(D.docentes.find(d=>d.id===D.docenteActivo)?.nombre || '—')}</option></select>
+      </div>
     </div>
     <label class="lbl">Falta al AEC</label>
     <select style="width:100%" onchange="form.faltaId=this.value;form.equiv=null;render()">
@@ -1678,11 +1679,12 @@ function vRegistro(){
     </select>
     ${panelFalta}
     <div class="panel" style="background:#eef2f7;border-left:4px solid #1d3a5f;margin-bottom:12px">
-      <label class="lbl" style="color:#1d3a5f"><b>📅 Fecha del llamado</b></label>
+      <label class="lbl" style="color:#1d3a5f"><b>📅 Fecha del hecho (cuándo ocurrió)</b></label>
+      <p style="font-size:12px;color:#5a5346;margin:2px 0 6px">Si estás cargando algo del cuaderno de comunicaciones ocurrido días o semanas atrás, ponele la fecha real del hecho. La app la clasifica al período que corresponda.</p>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="date" id="inFechaRegistro" value="${form.fecha}" max="${new Date().toISOString().slice(0,10)}" onchange="form.fecha=this.value;render()" style="padding:6px 10px;border:1px solid #b8ae95;border-radius:3px;font-size:14px">
         <button class="btnMin" onclick="form.fecha=new Date().toISOString().slice(0,10);render()">Hoy</button>
-        <span style="font-size:12px;color:#5a5346">${form.fecha === new Date().toISOString().slice(0,10) ? "✓ Fecha de hoy" : "⚠ Registrando con fecha anterior: <b>" + form.fecha + "</b>"}</span>
+        <span style="font-size:12px;color:${form.fecha === new Date().toISOString().slice(0,10) ? '#2e5e3f' : '#a34434'};font-weight:700">${form.fecha === new Date().toISOString().slice(0,10) ? "✓ Fecha de hoy" : "⏰ Carga retroactiva · fecha del hecho: " + form.fecha}</span>
       </div>
     </div>
     <div class="grid2">
