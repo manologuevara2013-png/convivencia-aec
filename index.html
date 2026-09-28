@@ -17,11 +17,33 @@
 -->
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="author" content="Eduardo H. Guevara">
 <meta name="copyright" content="© 2026 Eduardo H. Guevara. Todos los derechos reservados.">
 <meta name="description" content="Aplicación institucional de convivencia — Uso exclusivo del personal docente del Colegio FASTA Juan Pablo II">
 <title>Registro de Convivencia · AEC 2026 → GEI</title>
+
+<!-- PWA - Progressive Web App -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D3A5F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Convivencia AEC">
+
+<!-- iOS - Apple Web App -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Convivencia AEC">
+<link rel="apple-touch-icon" href="pwa_assets/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="pwa_assets/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="pwa_assets/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="pwa_assets/apple-touch-icon-180.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="16x16" href="pwa_assets/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="pwa_assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="pwa_assets/favicon-96.png">
+<link rel="shortcut icon" href="pwa_assets/favicon.ico">
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -3154,6 +3176,30 @@ window.cerrarSesionSB = async function(){
 };
 
 iniciarApp();
+</script>
+<script>
+// ─── PWA: Registro del Service Worker ───
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => {
+        console.log('✅ PWA: Service Worker registrado', reg.scope);
+      })
+      .catch(err => {
+        console.warn('PWA: No se pudo registrar SW:', err);
+      });
+  });
+}
+
+// Detectar si la app ya está instalada como PWA
+window.addEventListener('DOMContentLoaded', () => {
+  const esInstalada = window.matchMedia('(display-mode: standalone)').matches 
+                    || window.navigator.standalone === true;
+  if (esInstalada) {
+    console.log('📱 App corriendo como PWA instalada');
+    document.body.classList.add('pwa-instalada');
+  }
+});
 </script>
 </body>
 </html>
