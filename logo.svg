@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fondo circular azul (para PWA se recorta cuadrado) -->
+  <rect width="512" height="512" fill="#FDFCF8"/>
+  
+  <!-- Círculo dorado exterior -->
+  <circle cx="256.0" cy="256.0" r="240.64" fill="#C9B06A"/>
+  
+  <!-- Círculo azul interior -->
+  <circle cx="256.0" cy="256.0" r="215.04" fill="#1D3A5F"/>
+  
+  <!-- Borde interno dorado fino -->
+  <circle cx="256.0" cy="256.0" r="207.35999999999999" fill="none" stroke="#C9B06A" stroke-width="4.096"/>
+  
+  <!-- Cruz cristiana en la parte superior -->
+  <g transform="translate(256.0,163.84)">
+    <rect x="-6.144" y="-46.08" width="12.288" height="92.16" fill="#C9B06A" rx="1.536"/>
+    <rect x="-28.16" y="-19.456" width="56.32" height="12.288" fill="#C9B06A" rx="1.536"/>
+  </g>
+  
+  <!-- Iniciales JP grandes en el centro -->
+  <text x="256.0" y="281.6" 
+        font-family="Georgia, serif" 
+        font-size="163.84" 
+        font-weight="bold" 
+        fill="#C9B06A" 
+        text-anchor="middle">JP</text>
+  
+  <!-- Libro abierto estilizado en la base -->
+  <g transform="translate(256.0,399.36)">
+    <!-- Base del libro -->
+    <path d="M -66.56 0 L -66.56 20.48 L 0 12.8 L 66.56 20.48 L 66.56 0 Z" 
+          fill="#C9B06A" opacity="0.9"/>
+    <!-- Página izquierda -->
+    <path d="M -66.56 0 L 0 -10.24 L 0 12.8 L -66.56 20.48 Z" 
+          fill="#FDFCF8"/>
+    <!-- Página derecha -->
+    <path d="M 66.56 0 L 0 -10.24 L 0 12.8 L 66.56 20.48 Z" 
+          fill="#E8DFC9"/>
+    <!-- Lomo central -->
+    <line x1="0" y1="-10.24" x2="0" y2="12.8" 
+          stroke="#1D3A5F" stroke-width="2.048"/>
+  </g>
+  
+  <!-- Texto "FASTA" arriba del arco -->
+  <path id="arcoSup" d="M 92.16 256.0 A 163.84 163.84 0 0 1 419.84000000000003 256.0" 
+        fill="none"/>
+  <text font-family="Georgia, serif" font-size="28.16" font-weight="bold" fill="#C9B06A" letter-spacing="4.096">
+    <textPath href="#arcoSup" startOffset="50%" text-anchor="middle">FASTA</textPath>
+  </text>
+</svg>
